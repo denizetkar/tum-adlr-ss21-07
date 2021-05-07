@@ -6,7 +6,6 @@ from typing import Iterable
 
 import torch as th
 import torch.nn as nn
-from torch.autograd import Variable
 from torch.nn import Parameter
 
 
@@ -26,11 +25,8 @@ class LayerNorm(nn.Module):
         self.epsilon = epsilon
         # Wrap as parameters if necessary
         if learnable:
-            W = Parameter
-        else:
-            W = Variable
-        self.weights = W(self.weights)
-        self.biases = W(self.biases)
+            self.weights = Parameter(self.weights)
+            self.biases = Parameter(self.biases)
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -88,11 +84,8 @@ class BaLayerNorm(nn.Module):
         self.beta = th.empty(1, input_size).fill_(0)
         # Wrap as parameters if necessary
         if learnable:
-            W = Parameter
-        else:
-            W = Variable
-        self.alpha = W(self.alpha)
-        self.beta = W(self.beta)
+            self.alpha = Parameter(self.alpha)
+            self.beta = Parameter(self.beta)
 
     def forward(self, x: th.Tensor) -> th.Tensor:
         size = x.size()

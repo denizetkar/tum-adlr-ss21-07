@@ -1,1 +1,5 @@
-__all__ = []
+from .profiler import profile
+
+__all__ = [
+    "profile",
+]

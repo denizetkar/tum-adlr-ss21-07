@@ -10,7 +10,6 @@ from typing import List, Tuple
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 
 class LSTM(nn.Module):
@@ -45,7 +44,7 @@ class LSTM(nn.Module):
 
     def sample_mask(self):
         keep = 1.0 - self.dropout
-        self.mask = Variable(th.bernoulli(th.empty(1, self.hidden_size).fill_(keep)))
+        self.mask = th.bernoulli(th.empty(1, self.hidden_size).fill_(keep))
 
     def reset_parameters(self, gain: float = 1.0):
         for name, w in self.named_parameters():
