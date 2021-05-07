@@ -1,5 +1,5 @@
-from callbacks.curiosity import CuriosityCallback
-from callbacks.hyperparameter import HyperparameterCallback
+from .curiosity import CuriosityCallback
+from .hyperparameter import HyperparameterCallback
 
 __all__ = [
     "CuriosityCallback",

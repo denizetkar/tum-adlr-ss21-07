@@ -1,20 +1,26 @@
 import argparse
 
-from stable_baselines3 import PPO
+import torch as th
+
+# import gym
+# from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
+
+from rl_algo import RecurrentPPO
 
 
 def main(args: argparse.Namespace):
-    # Parallel environments
+    th.autograd.set_detect_anomaly(True)
     env = make_vec_env("CartPole-v1", n_envs=4)
+    # env = gym.make("CartPole-v1")
 
-    model = PPO("MlpPolicy", env, verbose=1)
+    # model = PPO("MlpPolicy", env, verbose=1)
+    model = RecurrentPPO("RnnPolicy", env, verbose=1)
     model.learn(total_timesteps=100000)
-    model.save("ppo_cartpole")
 
-    del model  # remove to demonstrate saving and loading
-
-    model = PPO.load("ppo_cartpole")
+    # model.save("ppo_cartpole")
+    # del model  # remove to demonstrate saving and loading
+    # model = PPO.load("ppo_cartpole")
 
     obs = env.reset()
     while True:

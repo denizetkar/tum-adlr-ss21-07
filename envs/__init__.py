@@ -1,4 +1,4 @@
-from envs.normalizer import NormalizedEnv
+from .normalizer import NormalizedEnv
 
 __all__ = [
     "NormalizedEnv",

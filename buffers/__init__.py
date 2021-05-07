@@ -1,5 +1,5 @@
-from buffers.episodic import EpisodicRolloutBuffer
-from buffers.samples import EpisodicRolloutBufferSamples
+from .episodic import EpisodicRolloutBuffer
+from .samples import EpisodicRolloutBufferSamples
 
 __all__ = [
     "EpisodicRolloutBuffer",
