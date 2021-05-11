@@ -261,7 +261,7 @@ class ActorCriticRnnPolicy(BasePolicy):
         for the different networks.
 
         :param obs: Observation
-        :param dones: Indicator for a new episode start
+        :param dones: Indicator for a new episode start (seq_len, n_envs)
         :return: Latent codes
             for the actor, the value function and for gSDE function
         """

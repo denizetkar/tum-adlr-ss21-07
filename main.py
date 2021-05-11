@@ -4,16 +4,17 @@ import numpy as np
 from stable_baselines3.common.env_util import make_vec_env
 
 from rl_algo import RecurrentPPO
-from utils.profiler import profile
+
+# from utils.profiler import profile
 
 
-@profile(file_path="profile.pstats")
+# @profile(file_path="profile.pstats")
 def main(args: argparse.Namespace):
     env = make_vec_env("CartPole-v1", n_envs=4)
 
-    policy_kwargs = {"net_arch": [16, dict(pi=[16], vf=[16])]}
+    policy_kwargs = {"net_arch": [1024, dict(pi=[1024], vf=[1024])]}
     model = RecurrentPPO("RnnPolicy", env, n_steps=256, min_batch_size=64, policy_kwargs=policy_kwargs, verbose=1)
-    model.learn(total_timesteps=100)
+    model.learn(total_timesteps=1025)
 
     # model.save("ppo_cartpole")
     # del model  # remove to demonstrate saving and loading
@@ -22,7 +23,7 @@ def main(args: argparse.Namespace):
     obs = env.reset()
     dones = np.zeros((env.num_envs,), dtype=bool)
     while True:
-        action, _ = model.predict(obs, dones)
+        action = model.predict(obs, dones)
         obs, _, dones, _ = env.step(action)
         env.render()
 
