@@ -1,8 +1,16 @@
-from .curiosity import DynamicsModel
-from .extractor import RnnExtractor, RnnFlattenExtractor
+from .curiosity import CuriosityModel, ForwardModel, InverseDynamicsModel
+from .extractor import RnnExtractor
+from .modules import MLP, MultiCrossEntropyLoss, Reshape, SequentialExpand, TupleApply, TuplePick
 
 __all__ = [
-    "DynamicsModel",
     "RnnExtractor",
-    "RnnFlattenExtractor",
+    "InverseDynamicsModel",
+    "ForwardModel",
+    "CuriosityModel",
+    "MLP",
+    "MultiCrossEntropyLoss",
+    "Reshape",
+    "SequentialExpand",
+    "TupleApply",
+    "TuplePick",
 ]

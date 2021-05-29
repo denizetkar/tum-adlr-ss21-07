@@ -1,29 +1,10 @@
 from typing import Dict, List, Tuple, Type, Union
 
-import gym
 import torch as th
-from stable_baselines3.common.preprocessing import get_flattened_obs_dim
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.utils import get_device
 from torch import nn
 
 from .rnn.lstms import LayerNormSemeniutaLSTM, MultiLayerLSTM
-
-
-class RnnFlattenExtractor(BaseFeaturesExtractor):
-    """
-    Feature extract that flatten the input.
-    Used as a placeholder when feature extraction is not needed.
-
-    :param observation_space:
-    """
-
-    def __init__(self, observation_space: gym.Space):
-        super().__init__(observation_space, get_flattened_obs_dim(observation_space))
-        self.flatten = nn.Flatten(start_dim=2)
-
-    def forward(self, observations: th.Tensor) -> th.Tensor:
-        return self.flatten(observations)
 
 
 class RnnExtractor(nn.Module):
@@ -57,7 +38,7 @@ class RnnExtractor(nn.Module):
         self,
         feature_dim: int,
         net_arch: List[Union[int, Dict[str, List[int]]]],
-        activation_fn: Type[nn.Module],
+        activation_fn: Type[nn.Module] = nn.PReLU,
         device: Union[th.device, str] = "auto",
     ):
         super().__init__()

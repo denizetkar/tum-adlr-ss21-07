@@ -45,10 +45,12 @@ class MultiLayerLSTM(nn.Module):
 
     def set_hidden_state(self, layer: int, hidden_state: Tuple[th.Tensor, th.Tensor]):
         new_h, new_c = hidden_state
-        self.register_buffer(MultiLayerLSTM._hidden_state_name(layer, "h"), new_h)
-        self.register_buffer(MultiLayerLSTM._hidden_state_name(layer, "c"), new_c)
+        self.register_buffer(MultiLayerLSTM._hidden_state_name(layer, "h"), new_h, persistent=False)
+        self.register_buffer(MultiLayerLSTM._hidden_state_name(layer, "c"), new_c, persistent=False)
 
     def reset_hiddens(self, batch_size: int = 1):
+        if len(self.layers) == 0:
+            return
         device = next(self.layers[0].parameters()).device
         # Uses Xavier init here.
         for idx, layer in enumerate(self.layers):

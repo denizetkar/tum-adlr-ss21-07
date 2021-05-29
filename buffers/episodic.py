@@ -18,6 +18,10 @@ from .samples import EpisodicRolloutBufferSamples
 #     RNN training -> reimplement RolloutBufferSamples class.
 
 
+NON_SCALAR_DATA_FIELDS = ["observations", "actions"]
+SCALAR_DATA_FIELDS = ["rewards", "returns", "dones", "values", "log_probs", "advantages"]
+
+
 class EpisodeBoundary(NamedTuple):
     from_idx: int
     to_idx: int
@@ -59,6 +63,26 @@ class EpisodicRolloutBuffer(RolloutBuffer):
         self._ep_boundaries: List[EpisodeBoundary] = []
         super().__init__(buffer_size, observation_space, action_space, device, gae_lambda, gamma, n_envs)
 
+    def unflatten_and_swap(self, arr: np.ndarray) -> np.ndarray:
+        """
+        Does the opposite of 'swap_and_flatten' method. Unflattens the first axis
+        [n_envs*n_steps, ...] into [n_envs, n_steps, ...]. Then swaps the first 2
+        axes into [n_steps, n_envs, ...]
+
+        :param arr:
+        :return:
+        """
+        shape = arr.shape
+        return arr.reshape(self.n_envs, -1, *shape[1:]).swapaxes(0, 1)
+
+    def soft_reset(self):
+        # Unflattens and swaps the data fields without resetting them.
+        for tensor in NON_SCALAR_DATA_FIELDS + SCALAR_DATA_FIELDS:
+            self.__dict__[tensor] = self.unflatten_and_swap(self.__dict__[tensor])
+        for tensor in SCALAR_DATA_FIELDS:
+            self.__dict__[tensor] = np.squeeze(self.__dict__[tensor], axis=-1)
+        self.generator_ready = False
+
     def reset(self) -> None:
         self._ep_boundaries.clear()
         super().reset()
@@ -67,10 +91,11 @@ class EpisodicRolloutBuffer(RolloutBuffer):
         assert self.full, ""
         # Prepare the data
         if not self.generator_ready:
-            self.dones[0, :] = 1.0
-            for tensor in ["observations", "actions", "values", "log_probs", "advantages", "returns", "dones"]:
+            dones = self.dones.copy()
+            dones[0, :] = 1.0
+            for tensor in NON_SCALAR_DATA_FIELDS + SCALAR_DATA_FIELDS:
                 self.__dict__[tensor] = self.swap_and_flatten(self.__dict__[tensor])
-            self._find_ep_boundaries(self.dones.astype(dtype=bool).reshape(-1))
+            self._find_ep_boundaries(dones.astype(dtype=bool).reshape(-1))
             self.generator_ready = True
         # Randomize over episodes instead of over individual experiences
         ep_indices: List[int] = np.random.permutation(len(self._ep_boundaries)).tolist()
@@ -85,7 +110,7 @@ class EpisodicRolloutBuffer(RolloutBuffer):
             yield self._get_samples(indices)
 
     def _find_ep_boundaries(self, dones: np.ndarray):
-        assert len(self._ep_boundaries) == 0, "episode boundaries must be found only once after each reset"
+        self._ep_boundaries.clear()
         from_idx, to_idx = 0, 0
         for done in dones:
             if done:
@@ -115,10 +140,12 @@ class EpisodicRolloutBuffer(RolloutBuffer):
         data = (
             self.observations[batch_inds],
             self.actions[batch_inds],
+            self.rewards[batch_inds].flatten(),
+            self.returns[batch_inds].flatten(),
+            self.dones[batch_inds].flatten(),
             self.values[batch_inds].flatten(),
             self.log_probs[batch_inds].flatten(),
             self.advantages[batch_inds].flatten(),
-            self.returns[batch_inds].flatten(),
-            self.dones[batch_inds].flatten(),
+            batch_inds,
         )
         return EpisodicRolloutBufferSamples(*tuple(map(self.to_torch, data)))

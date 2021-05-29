@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import gym
 import numpy as np
 import torch as th
-from models import RnnExtractor, RnnFlattenExtractor
+from models import RnnExtractor
 from stable_baselines3.common.distributions import (
     BernoulliDistribution,
     CategoricalDistribution,
@@ -17,7 +17,7 @@ from stable_baselines3.common.distributions import (
 )
 from stable_baselines3.common.policies import BasePolicy, create_sde_features_extractor
 from stable_baselines3.common.preprocessing import maybe_transpose
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor, FlattenExtractor
 from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.utils import is_vectorized_observation
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
@@ -77,7 +77,7 @@ class ActorCriticRnnPolicy(BasePolicy):
         sde_net_arch: Optional[List[int]] = None,
         use_expln: bool = False,
         squash_output: bool = False,
-        features_extractor_class: Type[BaseFeaturesExtractor] = RnnFlattenExtractor,
+        features_extractor_class: Type[BaseFeaturesExtractor] = FlattenExtractor,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
         optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
@@ -102,7 +102,7 @@ class ActorCriticRnnPolicy(BasePolicy):
 
         # Default network architecture, from stable-baselines
         if net_arch is None:
-            if features_extractor_class == RnnFlattenExtractor:
+            if features_extractor_class == FlattenExtractor:
                 net_arch = [64, dict(pi=[64], vf=[64])]
             else:
                 net_arch = []
@@ -246,7 +246,8 @@ class ActorCriticRnnPolicy(BasePolicy):
         :param deterministic: Whether to sample or use deterministic actions
         :return: action, value and log probability of the action
         """
-        latent_pi, latent_vf, latent_sde = self._get_latent(obs.unsqueeze(0), dones.unsqueeze(0))
+        features = self.extract_features(obs)
+        latent_pi, latent_vf, latent_sde = self._get_latent(features.unsqueeze(0), dones.unsqueeze(0))
         latent_pi, latent_vf, latent_sde = latent_pi.squeeze(0), latent_vf.squeeze(0), latent_sde.squeeze(0)
         # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
@@ -255,18 +256,16 @@ class ActorCriticRnnPolicy(BasePolicy):
         log_prob = distribution.log_prob(actions)
         return actions, values, log_prob
 
-    def _get_latent(self, obs: th.Tensor, dones: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def _get_latent(self, features: th.Tensor, dones: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         """
         Get the latent code (i.e., activations of the last layer of each network)
         for the different networks.
 
-        :param obs: Observation
+        :param features: Features extracted from observations
         :param dones: Indicator for a new episode start (seq_len, n_envs)
         :return: Latent codes
             for the actor, the value function and for gSDE function
         """
-        # Preprocess the observation if needed
-        features = self.extract_features(obs)
         latent_pi, latent_vf = self.rnn_extractor(features, dones)
 
         # Features for sde
@@ -363,7 +362,8 @@ class ActorCriticRnnPolicy(BasePolicy):
         :param deterministic: Whether to use stochastic or deterministic actions
         :return: Taken action according to the policy
         """
-        latent_pi, _, latent_sde = self._get_latent(observation.unsqueeze(0), dones.unsqueeze(0))
+        features = self.extract_features(observation)
+        latent_pi, _, latent_sde = self._get_latent(features.unsqueeze(0), dones.unsqueeze(0))
         latent_pi, latent_sde = latent_pi.squeeze(0), latent_sde.squeeze(0)
         distribution = self._get_action_dist_from_latent(latent_pi, latent_sde)
         return distribution.get_actions(deterministic=deterministic)
@@ -379,7 +379,8 @@ class ActorCriticRnnPolicy(BasePolicy):
         :return: estimated value, log likelihood of taking those actions
             and entropy of the action distribution.
         """
-        latent_pi, latent_vf, latent_sde = self._get_latent(obs.unsqueeze(1), dones.unsqueeze(1))
+        features = self.extract_features(obs)
+        latent_pi, latent_vf, latent_sde = self._get_latent(features.unsqueeze(1), dones.unsqueeze(1))
         latent_pi, latent_vf, latent_sde = latent_pi.squeeze(1), latent_vf.squeeze(1), latent_sde.squeeze(1)
         distribution = self._get_action_dist_from_latent(latent_pi, latent_sde)
         log_prob = distribution.log_prob(actions)
@@ -390,5 +391,6 @@ class ActorCriticRnnPolicy(BasePolicy):
         self.rnn_extractor.reset_hiddens(batch_size=batch_size)
 
 
+# TODO: implement CNN-RNN actor critic.
 class ActorCriticCnnRnnPolicy(ActorCriticRnnPolicy):
     pass

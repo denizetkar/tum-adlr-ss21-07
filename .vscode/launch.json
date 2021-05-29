@@ -11,6 +11,14 @@
             "program": "main.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
+            "args": [
+                "--curiosity-model-path",
+                "./checkpoints/curiosity.model",
+                "--ppo-model-path",
+                "./checkpoints/recurrent-ppo.zip",
+                "--device",
+                "cpu",
+            ],
             "justMyCode": false,
         }
     ]

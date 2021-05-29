@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import gym
 import numpy as np
 import torch as th
+import torch.nn as nn
 from buffers.episodic import EpisodicRolloutBuffer
 from gym import spaces
 from policies.actor_critic import ActorCriticRnnPolicy
@@ -141,6 +142,7 @@ class RecurrentPPO(BaseAlgorithm):
         self.clip_range_vf = clip_range_vf
         self.target_kl = target_kl
         self.policy: Optional[ActorCriticRnnPolicy] = None
+        self.advantage_normalizer: Optional[nn.BatchNorm1d] = None
 
         if _init_setup_model:
             self._setup_model()
@@ -168,7 +170,7 @@ class RecurrentPPO(BaseAlgorithm):
         )
         self.policy = self.policy.to(self.device)
         # # OnPolicyAlgorithm._setup_model() END
-
+        self.advantage_normalizer = nn.BatchNorm1d(1, eps=1e-8)
         # Initialize schedules for policy/value clipping
         self.clip_range = get_schedule_fn(self.clip_range)
         if self.clip_range_vf is not None:
@@ -249,9 +251,13 @@ class RecurrentPPO(BaseAlgorithm):
             done_tensor = th.as_tensor(dones).bool().to(self.device)
             _, values, _ = self.policy.forward(obs_tensor, done_tensor)
 
-        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
-
+        # 'on_rollout_end' must be called before so that the curiosity rewards and the
+        # advantages from those rewards can be calculated below. Note that this is a BREAKING
+        # CHANGE and it means that our curiosity callback would not work with the original
+        # 'PPO' implementation.
         callback.on_rollout_end()
+
+        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
 
         return True
 
@@ -292,12 +298,16 @@ class RecurrentPPO(BaseAlgorithm):
                 # Reset hidden states of the policy network with ``batch_size = n_envs = 1``
                 self.policy.reset_hiddens(batch_size=1)
                 values, log_prob, entropy = self.policy.evaluate_actions(
-                    rollout_data.observations, actions, rollout_data.dones.bool()
+                    rollout_data.observations, actions, rollout_data.dones
                 )
                 values = values.flatten()
                 # Normalize advantage
                 advantages = rollout_data.advantages
-                advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+                if advantages.numel() > 1:
+                    self.advantage_normalizer.train()
+                else:
+                    self.advantage_normalizer.eval()
+                advantages = self.advantage_normalizer(advantages.unsqueeze(-1)).squeeze(-1)
 
                 # ratio between old and new policy, should be one at the first iteration
                 ratio = th.exp(log_prob - rollout_data.old_log_prob)

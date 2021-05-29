@@ -260,3 +260,4 @@ Thumbs.db
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python,standardml,pycharm+all
 
 *.pstats
+/checkpoints/
