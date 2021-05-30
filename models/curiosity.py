@@ -128,7 +128,7 @@ class CuriosityModel(nn.Module):
 
     def forward(self, obs: th.Tensor, actions: th.Tensor, dones: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         first_n_minus_1_actions, latent_features = self.inverse_dynamics_model(obs, dones)
-        next_latent_features = self.forward_model(latent_features, actions)
+        next_latent_features = self.forward_model(latent_features.detach(), actions)
         return first_n_minus_1_actions, next_latent_features, latent_features
 
     def reset_hiddens(self, batch_size: int = 1):

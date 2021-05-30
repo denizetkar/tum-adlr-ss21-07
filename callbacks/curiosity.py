@@ -115,7 +115,7 @@ class CuriosityCallback(callbacks.BaseCallback):
                 first_n_minus_1_actions, next_latent_features, latent_features = self.curiosity_model(
                     rollout_data.observations, actions, rollout_data.dones
                 )
-                forward_loss = self.forward_loss(next_latent_features, latent_features[1:])
+                forward_loss = self.forward_loss(next_latent_features, latent_features[1:].detach())
                 inverse_dynamics_loss = self.inverse_dynamics_loss(first_n_minus_1_actions, actions[:-1])
                 loss: th.Tensor = forward_loss + inverse_dynamics_loss
                 loss.backward()
