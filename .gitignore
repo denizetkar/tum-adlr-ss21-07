@@ -261,3 +261,4 @@ Thumbs.db
 
 *.pstats
 /checkpoints/
+*.zip

@@ -10,7 +10,7 @@ cloudpickle==1.6.0
     #   stable-baselines3
 cycler==0.10.0
     # via matplotlib
-gym==0.18.3
+gym>=0.18.0
     # via
     #   -r requirements.in
     #   stable-baselines3
@@ -56,3 +56,5 @@ torch==1.8.1
     #   stable-baselines3
 typing-extensions==3.10.0.0
     # via torch
+
+torchvision>=0.9.1
