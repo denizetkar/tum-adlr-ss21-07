@@ -23,7 +23,7 @@
       --curiosity-model-path CURIOSITY_MODEL_PATH
                             Path to the curiosity model file to be loaded/saved.
       --ppo-model-path PPO_MODEL_PATH
-                            Path to the `RecurrentPPO` model file to be loaded/saved. Note that it is a '.zip' file.
+                            Path to the 'RecurrentPPO' model file to be loaded/saved. Note that it is a '.zip' file.
       --tensorboard-log TENSORBOARD_LOG
                             Path to the directory for saving the tensorboard logs. Directory will be created if it does not exist.
       --device DEVICE       String representation of the device to be used by PyTorch.See https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device for more details.
