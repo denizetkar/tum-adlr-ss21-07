@@ -6,6 +6,8 @@ export INSTANCE_NAME="adlr-deep-learning-vm"
 
 gcloud compute instances create $INSTANCE_NAME \
   --zone=$ZONE \
+  --machine-type=n1-standard-4 \
+  --boot-disk-size=100 \
   --image-family=$IMAGE_FAMILY \
   --image-project=deeplearning-platform-release \
   --maintenance-policy=TERMINATE \
