@@ -13,12 +13,11 @@ th.set_default_dtype(th.float32)
 
 # @profile(file_path="profile.pstats")
 def main(args: argparse.Namespace):
-    # rnn_hidden_dim
     env = make_vec_env(args.env, n_envs=args.n_envs)
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
         model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
     else:
-        policy_kwargs = {"net_arch": [512, dict(pi=[512], vf=[512])]}
+        policy_kwargs = {"net_arch": [args.rnn_hidden_dim, dict(pi=[args.rnn_hidden_dim], vf=[args.rnn_hidden_dim])]}
         model = RecurrentPPO(
             args.policy,
             env,
@@ -33,8 +32,8 @@ def main(args: argparse.Namespace):
         model.env.observation_space,
         model.env.action_space,
         partially_observable=False,
-        idm_net_arch=[512],
-        forward_net_arch=[512],
+        idm_net_arch=[args.rnn_hidden_dim],
+        forward_net_arch=[args.rnn_hidden_dim],
         model_path=args.curiosity_model_path,
         device=args.device,
     ) if args.use_curiosity else None
@@ -59,7 +58,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ppo-model-path",
         type=str,
+        required=True,
         help="Path to the `RecurrentPPO` model file to be loaded/saved. Note that it is a '.zip' file.",
+    )
+    parser.add_argument(
+        "--tensorboard-log",
+        type=str,
+        required=True,
+        help="Path to the directory for saving the tensorboard logs. Directory will be created if it does not exist."
     )
     parser.add_argument(
         "--device",
@@ -70,6 +76,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--total-timesteps", type=int, default=20000, help="Total number of timestamps for training")
     parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection")
+    parser.add_argument("--rnn-hidden-dim", type=int, default=512, help="Hidden dimension size for RNNs")
     parser.add_argument(
         "--policy",
         type=str,
@@ -80,12 +87,6 @@ if __name__ == "__main__":
         "--env",
         type=str,
         default="BreakoutNoFrameskip-v4",
-        help="String representation of the gym environment"
-    )
-    parser.add_argument(
-        "--tensorboard-log",
-        type=str,
-        required=True,
         help="String representation of the gym environment"
     )
     main(parser.parse_args())

@@ -131,7 +131,7 @@ class CnnExtractor(nn.Module):
             "https://stable-baselines3.readthedocs.io/en/master/common/env_checker.html"
         )
         n_input_channels = observation_space.shape[0]
-        assert n_input_channels == 3  # TODO: Check this
+        assert n_input_channels == 3, "Number of input channels should be 3 for images"
         pretrained_vgg = models.vgg16(pretrained=True)
         self.features_dim = features_dim
         self.features = pretrained_vgg.features.to(device)
@@ -150,8 +150,7 @@ class CnnExtractor(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, self.features_dim),
         ).to(device)
-
-        ## TODO: INIT WEIGHT
+        # TODO: Initialize weights to use this extractor
 
     def forward(self, x):
         x = self.features(x)
@@ -178,7 +177,7 @@ class EfficientNetExtractor(nn.Module):
             "https://stable-baselines3.readthedocs.io/en/master/common/env_checker.html"
         )
         n_input_channels = observation_space.shape[0]
-        assert n_input_channels == 3  # TODO: Check this
+        assert n_input_channels == 3, "Number of input channels should be 3 for images"
         self.efficient_net = EfficientNet.from_pretrained('efficientnet-b1', num_classes=features_dim).to(device)
         self.features_dim = features_dim
 
