@@ -170,7 +170,7 @@ class RecurrentPPO(BaseAlgorithm):
         )
         self.policy = self.policy.to(self.device)
         # # OnPolicyAlgorithm._setup_model() END
-        self.advantage_normalizer = nn.BatchNorm1d(1, eps=1e-8)
+        self.advantage_normalizer = nn.BatchNorm1d(1, eps=1e-8).to(self.device)
         # Initialize schedules for policy/value clipping
         self.clip_range = get_schedule_fn(self.clip_range)
         if self.clip_range_vf is not None:

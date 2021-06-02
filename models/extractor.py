@@ -3,6 +3,10 @@ from typing import Dict, List, Tuple, Type, Union
 import torch as th
 from stable_baselines3.common.utils import get_device
 from torch import nn
+from torchvision import models
+import gym
+from stable_baselines3.common.preprocessing import is_image_space
+from efficientnet_pytorch import EfficientNet
 
 from .rnn.lstms import LayerNormSemeniutaLSTM, MultiLayerLSTM
 
@@ -108,3 +112,75 @@ class RnnExtractor(nn.Module):
             value_outputs.append(value_output)
 
         return th.cat(policy_outputs, dim=0), th.cat(value_outputs, dim=0)
+
+
+class CnnExtractor(nn.Module):
+    def __init__(
+            self,
+            observation_space: gym.spaces.Space,
+            device: Union[th.device, str] = "auto",
+            features_dim: int = 512):
+        super().__init__()
+        device = get_device(device)
+        assert is_image_space(observation_space), (
+            "You should use CnnExtractor "
+            f"only with images not with {observation_space}\n"
+            "(you are probably using `CnnRnnPolicy` instead of `RnnPolicy`)\n"
+            "If you are using a custom environment,\n"
+            "please check it using our env checker:\n"
+            "https://stable-baselines3.readthedocs.io/en/master/common/env_checker.html"
+        )
+        n_input_channels = observation_space.shape[0]
+        assert n_input_channels == 3, "Number of input channels should be 3 for images"
+        pretrained_vgg = models.vgg16(pretrained=True)
+        self.features_dim = features_dim
+        self.features = pretrained_vgg.features.to(device)
+
+        with th.no_grad():
+            latent_dims = self.features(th.as_tensor(observation_space.sample()[None]).to(device).float()).shape
+
+        latent_h, latent_w = latent_dims[2:]
+        self.avg_pool = nn.AdaptiveAvgPool2d((latent_h, latent_w)).to(device)
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * latent_h * latent_w, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, self.features_dim),
+        ).to(device)
+        # TODO: Initialize weights to use this extractor
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avg_pool(x)
+        x = th.flatten(x, 1)
+        x = self.classifier(x)
+        return x
+
+
+class EfficientNetExtractor(nn.Module):
+    def __init__(
+            self,
+            observation_space: gym.spaces.Space,
+            device: Union[th.device, str] = "auto",
+            features_dim: int = 512):
+        super().__init__()
+        device = get_device(device)
+        assert is_image_space(observation_space), (
+            "You should use CnnExtractor "
+            f"only with images not with {observation_space}\n"
+            "(you are probably using `CnnRnnPolicy` instead of `RnnPolicy`)\n"
+            "If you are using a custom environment,\n"
+            "please check it using our env checker:\n"
+            "https://stable-baselines3.readthedocs.io/en/master/common/env_checker.html"
+        )
+        n_input_channels = observation_space.shape[0]
+        assert n_input_channels == 3, "Number of input channels should be 3 for images"
+        self.efficient_net = EfficientNet.from_pretrained('efficientnet-b1', num_classes=features_dim).to(device)
+        self.features_dim = features_dim
+
+    def forward(self, x: th.Tensor) -> th.Tensor:
+        x = self.efficient_net(x)
+        return x
