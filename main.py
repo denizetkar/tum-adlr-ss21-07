@@ -18,16 +18,23 @@ def main(args: argparse.Namespace):
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
         model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
     else:
-        policy_kwargs = {"net_arch": [16, dict(pi=[16], vf=[16])]}
+        policy_kwargs = {"net_arch": [512, dict(pi=[512], vf=[512])]}
         model = RecurrentPPO(
-            args.policy, env, n_steps=256, min_batch_size=64, policy_kwargs=policy_kwargs, device=args.device, verbose=1
+            args.policy,
+            env,
+            n_steps=256,
+            min_batch_size=64,
+            policy_kwargs=policy_kwargs,
+            device=args.device,
+            verbose=1,
+            tensorboard_log=args.tensorboard_log
         )
     callback = curiosity.CuriosityCallback(
         model.env.observation_space,
         model.env.action_space,
         partially_observable=False,
-        idm_net_arch=[16],
-        forward_net_arch=[16],
+        idm_net_arch=[512],
+        forward_net_arch=[512],
         model_path=args.curiosity_model_path,
         device=args.device,
     ) if args.use_curiosity else None
@@ -44,7 +51,11 @@ def main(args: argparse.Namespace):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--use-curiosity", action='store_true', help="Flag for using curiosity in the training")
-    parser.add_argument("--curiosity-model-path", type=str, help="Path to the curiosity model file to be loaded/saved.")
+    parser.add_argument(
+        "--curiosity-model-path",
+        type=str,
+        required=True,
+        help="Path to the curiosity model file to be loaded/saved.")
     parser.add_argument(
         "--ppo-model-path",
         type=str,
@@ -69,6 +80,12 @@ if __name__ == "__main__":
         "--env",
         type=str,
         default="BreakoutNoFrameskip-v4",
+        help="String representation of the gym environment"
+    )
+    parser.add_argument(
+        "--tensorboard-log",
+        type=str,
+        required=True,
         help="String representation of the gym environment"
     )
     main(parser.parse_args())

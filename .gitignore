@@ -261,4 +261,5 @@ Thumbs.db
 
 *.pstats
 /checkpoints/
+/tensorboard/
 *.zip
