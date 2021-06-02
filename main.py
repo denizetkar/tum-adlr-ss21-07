@@ -1,7 +1,6 @@
 import argparse
 import os
 
-import numpy as np
 import torch as th
 from stable_baselines3.common.env_util import make_vec_env
 
@@ -14,20 +13,27 @@ th.set_default_dtype(th.float32)
 
 # @profile(file_path="profile.pstats")
 def main(args: argparse.Namespace):
-    env = make_vec_env("CartPole-v1", n_envs=args.n_envs)
+    env = make_vec_env(args.env, n_envs=args.n_envs)
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
         model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
     else:
-        policy_kwargs = {"net_arch": [16, dict(pi=[16], vf=[16])]}
+        policy_kwargs = {"net_arch": [args.rnn_hidden_dim, dict(pi=[args.rnn_hidden_dim], vf=[args.rnn_hidden_dim])]}
         model = RecurrentPPO(
-            "RnnPolicy", env, n_steps=256, min_batch_size=64, policy_kwargs=policy_kwargs, device=args.device, verbose=1
+            args.policy,
+            env,
+            n_steps=256,
+            min_batch_size=64,
+            policy_kwargs=policy_kwargs,
+            device=args.device,
+            verbose=1,
+            tensorboard_log=args.tensorboard_log
         )
     callback = curiosity.CuriosityCallback(
-        env.observation_space,
-        env.action_space,
+        model.env.observation_space,
+        model.env.action_space,
         partially_observable=False,
-        idm_net_arch=[16],
-        forward_net_arch=[16],
+        idm_net_arch=[args.rnn_hidden_dim],
+        forward_net_arch=[args.rnn_hidden_dim],
         model_path=args.curiosity_model_path,
         device=args.device,
     ) if args.use_curiosity else None
@@ -40,22 +46,26 @@ def main(args: argparse.Namespace):
     if args.ppo_model_path is not None:
         model.save(args.ppo_model_path)
 
-    obs = env.reset()
-    dones = np.zeros((env.num_envs,), dtype=bool)
-    # while True:
-    #     action = model.predict(obs, dones)
-    #     obs, _, dones, _ = env.step(action)
-    #     env.render()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--use_curiosity", action='store_true', help="Flag for using curiosity in the training")
-    parser.add_argument("--curiosity-model-path", type=str, help="Path to the curiosity model file to be loaded/saved.")
+    parser.add_argument("--use-curiosity", action='store_true', help="Flag for using curiosity in the training")
+    parser.add_argument(
+        "--curiosity-model-path",
+        type=str,
+        required=True,
+        help="Path to the curiosity model file to be loaded/saved.")
     parser.add_argument(
         "--ppo-model-path",
         type=str,
+        required=True,
         help="Path to the `RecurrentPPO` model file to be loaded/saved. Note that it is a '.zip' file.",
+    )
+    parser.add_argument(
+        "--tensorboard-log",
+        type=str,
+        required=True,
+        help="Path to the directory for saving the tensorboard logs. Directory will be created if it does not exist."
     )
     parser.add_argument(
         "--device",
@@ -64,6 +74,19 @@ if __name__ == "__main__":
         help="String representation of the device to be used by PyTorch."
         "See https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device for more details.",
     )
-    parser.add_argument("--total_timesteps", type=int, default=20000, help="Total number of timestamps for training")
-    parser.add_argument("--n_envs", type=int, default=4, help="Number of environments for data collection")
+    parser.add_argument("--total-timesteps", type=int, default=20000, help="Total number of timestamps for training")
+    parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection")
+    parser.add_argument("--rnn-hidden-dim", type=int, default=512, help="Hidden dimension size for RNNs")
+    parser.add_argument(
+        "--policy",
+        type=str,
+        default="CnnRnnPolicy",
+        choices=["RnnPolicy", "CnnRnnPolicy"],
+        help="Type of the policy network")
+    parser.add_argument(
+        "--env",
+        type=str,
+        default="BreakoutNoFrameskip-v4",
+        help="String representation of the gym environment"
+    )
     main(parser.parse_args())
