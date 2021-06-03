@@ -1,16 +1,14 @@
 #!/bin/bash
 
-mkdir models
-mkdir models/breakout_curiosity
-mkdir models/breakout_curiosity/curiosity
-mkdir models/breakout_curiosity/ppo
+mkdir model
+mkdir model/breakout_no_curiosity
 mkdir tensorboard
 
 python main.py \
-  --ppo-model-path ./models/breakout_curiosity/ppo \
+  --ppo-model-path ./model/breakout_no_curiosity/ppo.pth \
   --device cuda \
-  --tensorboard-log ./tensorboard/breakout_curiosity \
+  --tensorboard-log ./tensorboard/breakout_no_curiosity \
   --total-timesteps 1000000
 
-gsutil cp -r ./models gs://adlr-ss21-team7/breakout_no_curiosity
+gsutil cp -r ./model gs://adlr-ss21-team7/breakout_no_curiosity
 gsutil cp -r ./tensorboard gs://adlr-ss21-team7/breakout_no_curiosity
