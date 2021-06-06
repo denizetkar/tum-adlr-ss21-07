@@ -95,7 +95,7 @@ class EpisodicRolloutBuffer(RolloutBuffer):
             dones[0, :] = 1.0
             for tensor in NON_SCALAR_DATA_FIELDS + SCALAR_DATA_FIELDS:
                 self.__dict__[tensor] = self.swap_and_flatten(self.__dict__[tensor])
-            self._find_ep_boundaries(dones.astype(dtype=bool).reshape(-1))
+            self._find_ep_boundaries(self.swap_and_flatten(dones).astype(dtype=bool).reshape(-1))
             self.generator_ready = True
         # Randomize over episodes instead of over individual experiences
         ep_indices: List[int] = np.random.permutation(len(self._ep_boundaries)).tolist()
