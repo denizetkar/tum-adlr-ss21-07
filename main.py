@@ -22,7 +22,7 @@ def train(args: argparse.Namespace):
         model = RecurrentPPO(
             args.policy,
             env,
-            n_steps=256,
+            n_steps=args.n_steps,
             min_batch_size=64,
             policy_kwargs=policy_kwargs,
             device=args.device,
@@ -93,6 +93,9 @@ if __name__ == "__main__":
         "See https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device for more details.",
     )
     train_parser.add_argument("--total-timesteps", type=int, default=20000, help="Total number of timestamps for training")
+    train_parser.add_argument(
+        "--n-steps", type=int, default=1024, help="Maximum number of timesteps per rollout per environment"
+    )
     train_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection")
     train_parser.add_argument("--rnn-hidden-dim", type=int, default=512, help="Hidden dimension size for RNNs")
     train_parser.add_argument(

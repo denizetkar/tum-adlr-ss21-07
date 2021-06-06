@@ -22,7 +22,7 @@
                 "--device",
                 "cuda",
                 "--total-timesteps",
-                "10000000",
+                "5000000",
                 "--rnn-hidden-dim",
                 "32",
                 "--policy",
