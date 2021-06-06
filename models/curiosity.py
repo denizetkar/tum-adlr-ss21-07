@@ -13,7 +13,7 @@ from stable_baselines3.common.distributions import (
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
 from stable_baselines3.common.torch_layers import FlattenExtractor, NatureCNN
 
-from .extractor import RnnExtractor, CnnExtractor
+from .extractor import CnnExtractor, RnnExtractor
 from .modules import MLP, Reshape, SequentialExpand, TupleApply, TuplePick
 
 # See the blog below for a good explanation:
@@ -60,7 +60,8 @@ class InverseDynamicsModel(nn.Module):
         if isinstance(action_dist, DiagGaussianDistribution):
             self.action_net, _ = action_dist.proba_distribution_net(
                 latent_dim=latent_dim * 2,
-            ).to(device)
+            )
+            self.action_net = self.action_net.to(device)
         elif isinstance(action_dist, CategoricalDistribution):
             self.action_net = action_dist.proba_distribution_net(latent_dim=latent_dim * 2).to(device)
         elif isinstance(action_dist, MultiCategoricalDistribution):

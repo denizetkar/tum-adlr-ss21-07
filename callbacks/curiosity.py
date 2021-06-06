@@ -21,6 +21,7 @@ class CuriosityCallback(callbacks.BaseCallback):
         curiosity_coefficient: float = 0.5,
         latent_dim: int = 64,
         partially_observable: bool = True,
+        pure_curiosity_reward: bool = False,
         idm_net_arch: Optional[List[int]] = None,
         forward_net_arch: Optional[List[int]] = None,
         model_path: Optional[str] = None,
@@ -32,6 +33,7 @@ class CuriosityCallback(callbacks.BaseCallback):
         self.lr = learning_rate
         self.n_epochs = n_epochs
         self.curiosity_coefficient = curiosity_coefficient
+        self.pure_curiosity_reward = pure_curiosity_reward
         self.model_path = model_path
         self.device = get_device(device)
         self.curiosity_model = CuriosityModel(
@@ -90,7 +92,10 @@ class CuriosityCallback(callbacks.BaseCallback):
                     rollout_data.observations, actions, rollout_data.dones
                 )
                 curiosity_rewards = th.mean((next_latent_features - latent_features[1:]) ** 2, dim=1)
-                rollout_data.rewards[:-1] += self.curiosity_coefficient * curiosity_rewards
+                if self.pure_curiosity_reward:
+                    rollout_data.rewards[:-1] = self.curiosity_coefficient * curiosity_rewards
+                else:
+                    rollout_data.rewards[:-1] += self.curiosity_coefficient * curiosity_rewards
                 # Write the calculated rewards back
                 rollout_buffer.rewards[rollout_data.batch_inds.cpu().numpy()] = (
                     rollout_data.rewards.cpu().unsqueeze(-1).numpy()
