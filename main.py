@@ -26,17 +26,22 @@ def main(args: argparse.Namespace):
             policy_kwargs=policy_kwargs,
             device=args.device,
             verbose=1,
-            tensorboard_log=args.tensorboard_log
+            tensorboard_log=args.tensorboard_log,
         )
-    callback = curiosity.CuriosityCallback(
-        model.env.observation_space,
-        model.env.action_space,
-        partially_observable=False,
-        idm_net_arch=[args.rnn_hidden_dim],
-        forward_net_arch=[args.rnn_hidden_dim],
-        model_path=args.curiosity_model_path,
-        device=args.device,
-    ) if args.use_curiosity else None
+    callback = (
+        curiosity.CuriosityCallback(
+            model.env.observation_space,
+            model.env.action_space,
+            latent_dim=args.rnn_hidden_dim,
+            partially_observable=False,
+            idm_net_arch=[args.rnn_hidden_dim],
+            forward_net_arch=[args.rnn_hidden_dim],
+            model_path=args.curiosity_model_path,
+            device=args.device,
+        )
+        if args.use_curiosity
+        else None
+    )
 
     model.learn(
         total_timesteps=args.total_timesteps,
@@ -49,12 +54,10 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--use-curiosity", action='store_true', help="Flag for using curiosity in the training")
+    parser.add_argument("--use-curiosity", action="store_true", help="Flag for using curiosity in the training")
     parser.add_argument(
-        "--curiosity-model-path",
-        type=str,
-        required=True,
-        help="Path to the curiosity model file to be loaded/saved.")
+        "--curiosity-model-path", type=str, required=True, help="Path to the curiosity model file to be loaded/saved."
+    )
     parser.add_argument(
         "--ppo-model-path",
         type=str,
@@ -65,7 +68,7 @@ if __name__ == "__main__":
         "--tensorboard-log",
         type=str,
         required=True,
-        help="Path to the directory for saving the tensorboard logs. Directory will be created if it does not exist."
+        help="Path to the directory for saving the tensorboard logs. Directory will be created if it does not exist.",
     )
     parser.add_argument(
         "--device",
@@ -78,15 +81,9 @@ if __name__ == "__main__":
     parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection")
     parser.add_argument("--rnn-hidden-dim", type=int, default=512, help="Hidden dimension size for RNNs")
     parser.add_argument(
-        "--policy",
-        type=str,
-        default="CnnRnnPolicy",
-        choices=["RnnPolicy", "CnnRnnPolicy"],
-        help="Type of the policy network")
+        "--policy", type=str, default="CnnRnnPolicy", choices=["RnnPolicy", "CnnRnnPolicy"], help="Type of the policy network"
+    )
     parser.add_argument(
-        "--env",
-        type=str,
-        default="BreakoutNoFrameskip-v4",
-        help="String representation of the gym environment"
+        "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment"
     )
     main(parser.parse_args())
