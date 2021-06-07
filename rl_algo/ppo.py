@@ -449,3 +449,6 @@ class RecurrentPPO(BaseAlgorithm):
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
         state_dicts = ["policy", "policy.optimizer"]
         return state_dicts, []
+
+    def reset_hiddens(self, batch_size: int = 1):
+        self.policy.reset_hiddens(batch_size)

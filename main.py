@@ -56,10 +56,11 @@ def train(args: argparse.Namespace):
 
 def play(args: argparse.Namespace):
     env = make_vec_env(args.env, n_envs=args.n_envs)
-    model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
+    model: RecurrentPPO = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
 
     obs = env.reset()
     dones = np.zeros((env.num_envs,), dtype=bool)
+    model.reset_hiddens()
     while True:
         action = model.predict(obs, dones)
         obs, _, dones, _ = env.step(action)
