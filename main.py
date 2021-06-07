@@ -34,6 +34,7 @@ def train(args: argparse.Namespace):
         curiosity.CuriosityCallback(
             model.env.observation_space,
             model.env.action_space,
+            n_epochs=args.curiosity_epochs,
             latent_dim=args.rnn_hidden_dim,
             partially_observable=args.partially_observable,
             pure_curiosity_reward=args.pure_curiosity_reward,
@@ -90,6 +91,9 @@ if __name__ == "__main__":
         default="auto",
         help="String representation of the device to be used by PyTorch."
         "See https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device for more details.",
+    )
+    train_parser.add_argument(
+        "--curiosity-epochs", type=int, default=3, help="Number of epochs to train the curiosity models per 'collect_rollout'."
     )
     train_parser.add_argument("--total-timesteps", type=int, default=20000, help="Total number of timestamps for training")
     train_parser.add_argument(
