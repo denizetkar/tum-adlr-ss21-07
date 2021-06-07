@@ -16,7 +16,7 @@
                 "--curiosity-model-path",
                 "./checkpoints/curiosity.model",
                 "--ppo-model-path",
-                "./checkpoints/recurrent-ppo.zip",
+                "./checkpoints/recurrent-ppo-curiosity.zip",
                 "--tensorboard-log",
                 "./tensorboard/MountainCarContinuous-v0_curiosity",
                 "--device",
