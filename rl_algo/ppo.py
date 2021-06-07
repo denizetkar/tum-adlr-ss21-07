@@ -462,6 +462,7 @@ class RecurrentPPO(BaseAlgorithm):
     def _excluded_save_params(self) -> List[str]:
         excludes = super()._excluded_save_params()
         excludes.append("model_lock")
+        return excludes
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
         state_dicts = ["policy", "policy.optimizer"]
