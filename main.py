@@ -26,6 +26,7 @@ def train(args: argparse.Namespace):
             min_batch_size=64,
             policy_kwargs=policy_kwargs,
             device=args.device,
+            model_path=args.ppo_model_path,
             verbose=1,
             tensorboard_log=args.tensorboard_log,
         )
@@ -49,9 +50,6 @@ def train(args: argparse.Namespace):
         total_timesteps=args.total_timesteps,
         callback=callback,
     )
-
-    if args.ppo_model_path is not None:
-        model.save(args.ppo_model_path)
 
 
 def play(args: argparse.Namespace):

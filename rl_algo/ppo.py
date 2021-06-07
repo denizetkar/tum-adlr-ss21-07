@@ -1,3 +1,4 @@
+import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
@@ -90,6 +91,7 @@ class RecurrentPPO(BaseAlgorithm):
         tensorboard_log: Optional[str] = None,
         create_eval_env: bool = False,
         policy_kwargs: Optional[Dict[str, Any]] = None,
+        model_path: Optional[str] = None,
         verbose: int = 0,
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
@@ -141,6 +143,8 @@ class RecurrentPPO(BaseAlgorithm):
         self.clip_range = clip_range
         self.clip_range_vf = clip_range_vf
         self.target_kl = target_kl
+        self.model_path = model_path
+        self.model_lock = threading.Lock()
         self.policy: Optional[ActorCriticRnnPolicy] = None
         self.advantage_normalizer: Optional[nn.BatchNorm1d] = None
 
@@ -440,11 +444,20 @@ class RecurrentPPO(BaseAlgorithm):
                 logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
                 logger.dump(step=self.num_timesteps)
 
-            self.train()
+            with self.model_lock:
+                self.train()
+            # Save model without blocking
+            threading.Thread(target=self.safe_save).start()
 
         callback.on_training_end()
 
         return self
+
+    def safe_save(self):
+        if self.model_path is None:
+            return
+        with self.model_lock:
+            self.save(self.model_path)
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
         state_dicts = ["policy", "policy.optimizer"]
