@@ -22,15 +22,16 @@
     Subcommand:
       {train,play}
         train       Subcommand for training the PPO and curiosity models.
-        play        Subcommand for getting the PPO model to play in the  
+        play        Subcommand for getting the PPO model to play in the
                     environment for which it was trained.
 
 #### `train` subcommand usage
-    usage: main.py train [-h] --curiosity-model-path CURIOSITY_MODEL_PATH     
-                         --ppo-model-path PPO_MODEL_PATH --tensorboard-log    
+    usage: main.py train [-h] [--curiosity-model-path CURIOSITY_MODEL_PATH]
+                         --ppo-model-path PPO_MODEL_PATH --tensorboard-log
                          TENSORBOARD_LOG [--device DEVICE]
-                         [--total-timesteps TOTAL_TIMESTEPS] [--n-envs N_ENVS]
-                         [--rnn-hidden-dim RNN_HIDDEN_DIM]
+                         [--curiosity-epochs CURIOSITY_EPOCHS]
+                         [--total-timesteps TOTAL_TIMESTEPS] [--n-steps N_STEPS]
+                         [--n-envs N_ENVS] [--rnn-hidden-dim RNN_HIDDEN_DIM]
                          [--policy {RnnPolicy,CnnRnnPolicy}] [--env ENV]
                          [--partially-observable] [--use-curiosity]
                          [--pure-curiosity-reward]
@@ -48,8 +49,13 @@
       --device DEVICE       String representation of the device to be used by
                             PyTorch.See https://pytorch.org/docs/stable/tensor_att
                             ributes.html#torch.torch.device for more details.
+      --curiosity-epochs CURIOSITY_EPOCHS
+                            Number of epochs to train the curiosity models per
+                            'collect_rollout'.
       --total-timesteps TOTAL_TIMESTEPS
                             Total number of timestamps for training
+      --n-steps N_STEPS     Maximum number of timesteps per rollout per
+                            environment
       --n-envs N_ENVS       Number of environments for data collection
       --rnn-hidden-dim RNN_HIDDEN_DIM
                             Hidden dimension size for RNNs

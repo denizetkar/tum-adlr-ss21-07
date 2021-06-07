@@ -70,9 +70,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers(title="Subcommand")
     train_parser = subparser.add_parser("train", help="Subcommand for training the PPO and curiosity models.")
-    train_parser.add_argument(
-        "--curiosity-model-path", type=str, required=True, help="Path to the curiosity model file to be loaded/saved."
-    )
+    train_parser.add_argument("--curiosity-model-path", type=str, help="Path to the curiosity model file to be loaded/saved.")
     train_parser.add_argument(
         "--ppo-model-path",
         type=str,
