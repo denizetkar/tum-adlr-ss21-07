@@ -5,7 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: Play",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "play",
+                "--ppo-model-path",
+                "./checkpoints/recurrent-ppo-curiosity.zip",
+                "--device",
+                "cuda",
+                "--n-envs",
+                "4",
+                "--env",
+                "MountainCarContinuous-v0",
+            ],
+            "justMyCode": false,
+        },
+        {
+            "name": "Python: Train",
             "type": "python",
             "request": "launch",
             "program": "main.py",
