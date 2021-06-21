@@ -1,4 +1,3 @@
-import math
 from typing import List, Tuple, Type
 
 import torch as th
@@ -54,23 +53,21 @@ class MultiLayerLSTM(nn.Module):
         device = next(self.layers[0].parameters()).device
         # Uses Xavier init here.
         for idx, layer in enumerate(self.layers):
-            std = math.sqrt(2.0 / (layer.input_size + layer.hidden_size))
             self.set_hidden_state(
                 idx,
                 (
-                    th.empty((batch_size, layer.hidden_size), device=device, requires_grad=False).normal_(0, std),
-                    th.empty((batch_size, layer.hidden_size), device=device, requires_grad=False).normal_(0, std),
+                    th.empty((batch_size, layer.hidden_size), device=device, requires_grad=False).fill_(0),
+                    th.empty((batch_size, layer.hidden_size), device=device, requires_grad=False).fill_(0),
                 ),
             )
 
     def reset_batch_hiddens(self, batch_idx: int):
         # Uses Xavier init here.
         for idx, layer in enumerate(self.layers):
-            std = math.sqrt(2.0 / (layer.input_size + layer.hidden_size))
             h, c = self.get_hidden_state(idx)
             index_tensor = th.tensor([batch_idx]).long().to(h.device)
-            new_h = h.index_copy(0, index_tensor, th.empty(layer.hidden_size).normal_(0, std).unsqueeze_(0).to(h.device))
-            new_c = c.index_copy(0, index_tensor, th.empty(layer.hidden_size).normal_(0, std).unsqueeze_(0).to(c.device))
+            new_h = h.index_copy(0, index_tensor, th.empty(layer.hidden_size).fill_(0).unsqueeze_(0).to(h.device))
+            new_c = c.index_copy(0, index_tensor, th.empty(layer.hidden_size).fill_(0).unsqueeze_(0).to(c.device))
             self.set_hidden_state(idx, (new_h, new_c))
 
     def sample_mask(self):
