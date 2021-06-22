@@ -18,6 +18,11 @@ th.set_default_dtype(th.float32)
 # @profile(file_path="profile.pstats")
 def train(args: argparse.Namespace):
     env = make_vec_env(args.env, n_envs=args.n_envs)
+    env.seed(0)
+    random.seed(0)
+    np.random.seed(0)
+    th.manual_seed(0)
+
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
         model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
     else:
