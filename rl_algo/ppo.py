@@ -8,7 +8,7 @@ import torch as th
 import torch.nn as nn
 from buffers.episodic import EpisodicRolloutBuffer
 from gym import spaces
-from policies.actor_critic import ActorCriticRnnPolicy
+from policies import ActorCriticPolicy
 from stable_baselines3.common import logger
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import BaseCallback
@@ -72,7 +72,7 @@ class RecurrentPPO(BaseAlgorithm):
 
     def __init__(
         self,
-        policy: Union[str, Type[ActorCriticRnnPolicy]],
+        policy: Union[str, Type[ActorCriticPolicy]],
         env: Union[GymEnv, str],
         learning_rate: Union[float, Schedule] = 3e-4,
         n_steps: int = 2048,
@@ -100,7 +100,7 @@ class RecurrentPPO(BaseAlgorithm):
         super().__init__(
             policy=policy,
             env=env,
-            policy_base=ActorCriticRnnPolicy,
+            policy_base=ActorCriticPolicy,
             learning_rate=learning_rate,
             policy_kwargs=policy_kwargs,
             verbose=verbose,
@@ -145,7 +145,7 @@ class RecurrentPPO(BaseAlgorithm):
         self.target_kl = target_kl
         self.model_path = model_path
         self.model_lock = threading.Lock()
-        self.policy: Optional[ActorCriticRnnPolicy] = None
+        self.policy: Optional[ActorCriticPolicy] = None
         self.advantage_normalizer: Optional[nn.BatchNorm1d] = None
 
         if _init_setup_model:

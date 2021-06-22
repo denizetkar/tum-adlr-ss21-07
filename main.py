@@ -125,7 +125,11 @@ if __name__ == "__main__":
     train_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection")
     train_parser.add_argument("--rnn-hidden-dim", type=int, default=512, help="Hidden dimension size for RNNs")
     train_parser.add_argument(
-        "--policy", type=str, default="CnnRnnPolicy", choices=["RnnPolicy", "CnnRnnPolicy"], help="Type of the policy network"
+        "--policy",
+        type=str,
+        default="CnnRnnPolicy",
+        choices=["MlpPolicy", "RnnPolicy", "CnnRnnPolicy"],
+        help="Type of the policy network",
     )
     train_parser.add_argument(
         "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment"

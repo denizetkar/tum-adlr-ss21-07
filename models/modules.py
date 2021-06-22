@@ -1,27 +1,9 @@
-from typing import List, Tuple, Type, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import torch as th
 import torch.nn as nn
 from gym import spaces
-
-
-class MLP(nn.Module):
-    def __init__(self, input_dim: int, net_arch: List[int], activation_fn: Type[nn.Module] = nn.PReLU):
-        super().__init__()
-        layers: List[nn.Module] = []
-        for hidden_dim in net_arch[:-1]:
-            layers.extend([nn.Linear(input_dim, hidden_dim), activation_fn()])
-            input_dim = hidden_dim
-        if len(net_arch) > 0:
-            layers.append(nn.Linear(input_dim, net_arch[-1]))
-        self.mlp = nn.Sequential(*layers)
-
-    def forward(self, x: th.Tensor) -> th.Tensor:
-        return self.mlp(x)
-
-    def __repr__(self):
-        return "{}([{}])".format(self.__class__.__name__, ", ".join([repr(self.mlp[i]) for i in range(len(self.mlp))]))
 
 
 class TuplePick(nn.Module):
@@ -32,8 +14,8 @@ class TuplePick(nn.Module):
     def forward(self, *t_args: th.Tensor) -> th.Tensor:
         return t_args[self.index]
 
-    def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, self.index)
+    def extra_repr(self) -> str:
+        return "(index): {}".format(self.index)
 
 
 class TupleApply(nn.Module):
@@ -44,9 +26,6 @@ class TupleApply(nn.Module):
     def forward(self, *t_args: th.Tensor) -> Tuple[th.Tensor, ...]:
         return tuple(mod(x) for mod, x in zip(self.mods, t_args))
 
-    def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, ", ".join([repr(mod) for mod in self.mods]))
-
 
 class Reshape(nn.Module):
     def __init__(self, *args: int):
@@ -56,8 +35,8 @@ class Reshape(nn.Module):
     def forward(self, x: th.Tensor) -> th.Tensor:
         return x.reshape(*self.shape)
 
-    def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, ", ".join([repr(dim) for dim in self.shape]))
+    def extra_repr(self) -> str:
+        return "(shape): {}".format(self.shape)
 
 
 class SequentialExpand(nn.Module):
@@ -93,5 +72,5 @@ class MultiCrossEntropyLoss(nn.Module):
         )
         return losses.mean()
 
-    def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, ", ".join([repr(dim) for dim in self.nvec]))
+    def extra_repr(self) -> str:
+        return "(nvec): {}".format(self.nvec)
