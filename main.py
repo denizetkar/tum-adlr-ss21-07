@@ -74,16 +74,16 @@ def play(args: argparse.Namespace):
         obs, _, dones, _ = env.step(action)
         if args.save_as_gif:
             frames.append(env.render(mode="rgb_array"))
-            if len(frames) == 1000:
+            if len(frames) == args.gif_frame_size:
                 break
         else:
             env.render()
     env.close()
     if args.save_as_gif:
-        save_frames_as_gif(frames)
+        save_frames_as_gif(frames, args.gif_path)
 
 
-def save_frames_as_gif(frames, path="./", filename="gym_animation.gif"):
+def save_frames_as_gif(frames, gif_path="gym_animation.gif"):
     plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
 
     patch = plt.imshow(frames[0])
@@ -93,7 +93,7 @@ def save_frames_as_gif(frames, path="./", filename="gym_animation.gif"):
         patch.set_data(frames[i])
 
     anim = animation.FuncAnimation(plt.gcf(), animate, frames=len(frames), interval=50)
-    anim.save(path + filename, writer="imagemagick", fps=60)
+    anim.save(gif_path, writer="imagemagick", fps=60)
 
 
 if __name__ == "__main__":
@@ -179,6 +179,9 @@ if __name__ == "__main__":
     play_parser.add_argument(
         "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment"
     )
+    play_parser.add_argument("--save-as-gif", action="store_true", help="Flag for saving the played episodes as a gif.")
+    play_parser.add_argument("--gif-frame-size", type=int, default=1000, help="Number of frames to be saved as a gif.")
+    play_parser.add_argument("--gif-path", type=str, default="gym_animation.gif", help="Path to save the .gif file.")
     play_parser.set_defaults(func=play)
 
     args = parser.parse_args()
