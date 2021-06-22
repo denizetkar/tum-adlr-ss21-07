@@ -13,8 +13,9 @@ from stable_baselines3.common.distributions import (
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
 from stable_baselines3.common.torch_layers import FlattenExtractor, NatureCNN
 
-from .extractor import CnnExtractor, RnnExtractor
-from .modules import MLP, Reshape, SequentialExpand, TupleApply, TuplePick
+from .extractor import RnnExtractor
+from .mlp import MLP
+from .modules import Reshape, SequentialExpand, TupleApply, TuplePick
 
 # See the blog below for a good explanation:
 # https://medium.com/analytics-vidhya/advanced-exploration-curiosity-driven-exploration-52bcac6d3450
