@@ -1,9 +1,12 @@
 import argparse
 import os
+import random
 
 import numpy as np
 import torch as th
 from stable_baselines3.common.env_util import make_vec_env
+from matplotlib import animation
+import matplotlib.pyplot as plt
 
 from callbacks import curiosity
 from rl_algo import RecurrentPPO
@@ -60,10 +63,32 @@ def play(args: argparse.Namespace):
     obs = env.reset()
     dones = np.zeros((env.num_envs,), dtype=bool)
     model.reset_hiddens()
+    frames = []
     while True:
         action = model.predict(obs, dones)
         obs, _, dones, _ = env.step(action)
-        env.render()
+        if args.save_as_gif:
+            frames.append(env.render(mode="rgb_array"))
+            if len(frames) == 1000:
+                break
+        else:
+            env.render()
+    env.close()
+    if args.save_as_gif:
+        save_frames_as_gif(frames)
+
+
+def save_frames_as_gif(frames, path='./', filename='gym_animation.gif'):
+    plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
+
+    patch = plt.imshow(frames[0])
+    plt.axis('off')
+
+    def animate(i):
+        patch.set_data(frames[i])
+
+    anim = animation.FuncAnimation(plt.gcf(), animate, frames = len(frames), interval=50)
+    anim.save(path + filename, writer='imagemagick', fps=60)
 
 
 if __name__ == "__main__":
