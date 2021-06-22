@@ -18,10 +18,10 @@ th.set_default_dtype(th.float32)
 # @profile(file_path="profile.pstats")
 def train(args: argparse.Namespace):
     env = make_vec_env(args.env, n_envs=args.n_envs)
-    env.seed(0)
-    random.seed(0)
-    np.random.seed(0)
-    th.manual_seed(0)
+    env.seed(args.rng_seed)
+    random.seed(args.rng_seed)
+    np.random.seed(args.rng_seed)
+    th.manual_seed(args.rng_seed)
 
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
         model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
@@ -138,6 +138,12 @@ if __name__ == "__main__":
     )
     train_parser.add_argument(
         "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment"
+    )
+    train_parser.add_argument(
+        "--rng-seed",
+        type=int,
+        default=12345,
+        help="The seed to be used for all random number generators for repeatable experiments.",
     )
     train_parser.add_argument(
         "--partially-observable",
