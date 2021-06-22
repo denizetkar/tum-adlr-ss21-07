@@ -1,12 +1,13 @@
 from typing import Dict, List, Tuple, Type, Union
 
+import gym
 import torch as th
+from efficientnet_pytorch import EfficientNet
+from stable_baselines3.common.preprocessing import is_image_space
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.utils import get_device
 from torch import nn
 from torchvision import models
-import gym
-from stable_baselines3.common.preprocessing import is_image_space
-from efficientnet_pytorch import EfficientNet
 
 from .rnn.lstms import LayerNormSemeniutaLSTM, MultiLayerLSTM
 
@@ -114,13 +115,13 @@ class RnnExtractor(nn.Module):
         return th.cat(policy_outputs, dim=0), th.cat(value_outputs, dim=0)
 
 
-class CnnExtractor(nn.Module):
+class CnnExtractor(BaseFeaturesExtractor):
     def __init__(
             self,
             observation_space: gym.spaces.Space,
             device: Union[th.device, str] = "auto",
             features_dim: int = 512):
-        super().__init__()
+        super().__init__(observation_space, features_dim)
         device = get_device(device)
         assert is_image_space(observation_space), (
             "You should use CnnExtractor "
@@ -133,7 +134,6 @@ class CnnExtractor(nn.Module):
         n_input_channels = observation_space.shape[0]
         assert n_input_channels == 3, "Number of input channels should be 3 for images"
         pretrained_vgg = models.vgg16(pretrained=True)
-        self.features_dim = features_dim
         self.features = pretrained_vgg.features.to(device)
 
         with th.no_grad():
@@ -160,13 +160,13 @@ class CnnExtractor(nn.Module):
         return x
 
 
-class EfficientNetExtractor(nn.Module):
+class EfficientNetExtractor(BaseFeaturesExtractor):
     def __init__(
             self,
             observation_space: gym.spaces.Space,
             device: Union[th.device, str] = "auto",
             features_dim: int = 512):
-        super().__init__()
+        super().__init__(observation_space, features_dim)
         device = get_device(device)
         assert is_image_space(observation_space), (
             "You should use CnnExtractor "
@@ -179,7 +179,6 @@ class EfficientNetExtractor(nn.Module):
         n_input_channels = observation_space.shape[0]
         assert n_input_channels == 3, "Number of input channels should be 3 for images"
         self.efficient_net = EfficientNet.from_pretrained('efficientnet-b1', num_classes=features_dim).to(device)
-        self.features_dim = features_dim
 
     def forward(self, x: th.Tensor) -> th.Tensor:
         x = self.efficient_net(x)
