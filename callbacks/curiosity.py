@@ -9,6 +9,7 @@ from gym import spaces
 from models import CuriosityModel, MultiCrossEntropyLoss
 from stable_baselines3.common import callbacks
 from stable_baselines3.common.utils import get_device
+from stable_baselines3.common import logger
 
 
 class CuriosityCallback(callbacks.BaseCallback):
@@ -35,6 +36,7 @@ class CuriosityCallback(callbacks.BaseCallback):
         self.curiosity_coefficient = curiosity_coefficient
         self.pure_curiosity_reward = pure_curiosity_reward
         self.model_path = model_path
+        self.save_idx = 0
         self.device = get_device(device)
         self.curiosity_model = CuriosityModel(
             observation_space, action_space, self.device, latent_dim, partially_observable, idm_net_arch, forward_net_arch
@@ -67,7 +69,10 @@ class CuriosityCallback(callbacks.BaseCallback):
         self._train_curiosity_model(rollout_buffer)
         if self.model_path is not None:
             # Save curiosity model.
-            th.save(self.curiosity_model.state_dict(), self.model_path)
+            save_path = self.model_path + str(self.save_idx) + ".model"
+            self.save_idx += 1
+            th.save(self.curiosity_model.state_dict(), save_path)
+            logger.log(f"Saved the curiosity model at {save_path}.")
         # Soft reset the rollout buffer so that advantages can be calculated from rewards later.
         rollout_buffer.soft_reset()
 

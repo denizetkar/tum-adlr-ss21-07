@@ -6,7 +6,7 @@ mkdir tensorboard
 
 python main.py \
   train \
-  --ppo-model-path ./model/breakout_no_curiosity/ppo.pth \
+  --ppo-model-path ./model/breakout_no_curiosity/ppo \
   --device cuda \
   --tensorboard-log ./tensorboard/breakout_no_curiosity \
   --total-timesteps 1000000
