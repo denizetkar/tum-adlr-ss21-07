@@ -137,7 +137,7 @@ if __name__ == "__main__":
         "--policy",
         type=str,
         default="CnnRnnPolicy",
-        choices=["MlpPolicy", "RnnPolicy", "CnnRnnPolicy"],
+        choices=["MlpPolicy", "CnnPolicy", "RnnPolicy", "CnnRnnPolicy"],
         help="Type of the policy network",
     )
     train_parser.add_argument(

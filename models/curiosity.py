@@ -11,9 +11,9 @@ from stable_baselines3.common.distributions import (
     make_proba_distribution,
 )
 from stable_baselines3.common.preprocessing import is_image_space, preprocess_obs
-from stable_baselines3.common.torch_layers import FlattenExtractor, NatureCNN
+from stable_baselines3.common.torch_layers import FlattenExtractor
 
-from .extractor import RnnExtractor
+from .extractor import EnhancedNatureCNN, RnnExtractor
 from .mlp import MLP
 from .modules import Reshape, SequentialExpand, TupleApply, TuplePick
 
@@ -35,7 +35,7 @@ class InverseDynamicsModel(nn.Module):
         self.observation_space = observation_space
         # Get first extractor.
         if is_image_space(observation_space):
-            self.first_extractor = NatureCNN(observation_space, features_dim=latent_dim).to(device)
+            self.first_extractor = EnhancedNatureCNN(observation_space, features_dim=latent_dim).to(device)
         else:
             flattener = FlattenExtractor(observation_space)
             self.first_extractor = nn.Sequential(flattener, nn.Linear(flattener.features_dim, latent_dim)).to(device)

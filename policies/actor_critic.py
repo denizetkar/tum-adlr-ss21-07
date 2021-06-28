@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import gym
 import numpy as np
 import torch as th
-from models import MlpExtractor, RnnExtractor
+from models import EnhancedNatureCNN, MlpExtractor, RnnExtractor
 from stable_baselines3.common.distributions import (
     BernoulliDistribution,
     CategoricalDistribution,
@@ -17,7 +17,7 @@ from stable_baselines3.common.distributions import (
 )
 from stable_baselines3.common.policies import BasePolicy, create_sde_features_extractor
 from stable_baselines3.common.preprocessing import maybe_transpose
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor, FlattenExtractor, NatureCNN
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor, FlattenExtractor
 from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.utils import is_vectorized_observation
 from stable_baselines3.common.vec_env.obs_dict_wrapper import ObsDictWrapper
@@ -406,7 +406,7 @@ class ActorCriticCnnPolicy(ActorCriticPolicy):
         sde_net_arch: Optional[List[int]] = None,
         use_expln: bool = False,
         squash_output: bool = False,
-        features_extractor_class: Type[BaseFeaturesExtractor] = NatureCNN,
+        features_extractor_class: Type[BaseFeaturesExtractor] = EnhancedNatureCNN,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
         optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
@@ -535,7 +535,7 @@ class ActorCriticCnnRnnPolicy(ActorCriticRnnPolicy):
         sde_net_arch: Optional[List[int]] = None,
         use_expln: bool = False,
         squash_output: bool = False,
-        features_extractor_class: Type[BaseFeaturesExtractor] = NatureCNN,
+        features_extractor_class: Type[BaseFeaturesExtractor] = EnhancedNatureCNN,
         features_extractor_kwargs: Optional[Dict[str, Any]] = None,
         normalize_images: bool = True,
         optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
