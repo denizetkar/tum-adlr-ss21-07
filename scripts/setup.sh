@@ -7,6 +7,7 @@ pip3 install gym==0.18.3
 pip3 install stable-baselines3==1.0
 pip3 install efficientnet-pytorch==0.7.1
 pip3 install tensorboard==2.5.0
+pip3 install pybullet==3.1.7
 
 pip3 install atari-py==0.2.9
 wget http://www.atarimania.com/roms/Roms.rar

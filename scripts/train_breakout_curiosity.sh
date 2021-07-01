@@ -1,17 +1,19 @@
 #!/bin/bash
 
-mkdir model
-mkdir model/breakout_curiosity
+mkdir checkpoint
+mkdir checkpoint/breakout_curiosity
 mkdir tensorboard
 
 python main.py \
   train \
-  --use-curiosity \
-  --curiosity-model-path ./model/breakout_curiosity/curiosity \
-  --ppo-model-path ./model/breakout_curiosity/ppo.pth \
+  --atari \
+  --curiosity-model-path "./checkpoint/breakout_curiosity/curiosity" \
+  --ppo-model-path "./checkpoint/breakout_curiosity/ppo" \
   --device cuda \
-  --tensorboard-log ./tensorboard/breakout_curiosity \
-  --total-timesteps 1000000
-
-gsutil cp -r ./model gs://adlr-ss21-team7/breakout_curiosity
-gsutil cp -r ./tensorboard gs://adlr-ss21-team7/breakout_curiosity
+  --tensorboard-log "./tensorboard/breakout_curiosity" \
+  --curiosity-epochs 8 \
+  --total-timesteps 3000000 \
+  --n-steps 2000 \
+  --n-envs 4 \
+  --policy CnnPolicy \
+  --use-curiosity
