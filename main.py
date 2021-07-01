@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
 from matplotlib import animation
-from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.env_util import make_vec_env, make_atari_env
+from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
+import pybullet_envs
 
 from callbacks import curiosity
 from rl_algo import RecurrentPPO
@@ -17,11 +19,14 @@ th.set_default_dtype(th.float32)
 
 # @profile(file_path="profile.pstats")
 def train(args: argparse.Namespace):
-    env = make_vec_env(args.env, n_envs=args.n_envs)
-    env.seed(args.rng_seed)
     random.seed(args.rng_seed)
     np.random.seed(args.rng_seed)
     th.manual_seed(args.rng_seed)
+
+    if args.atari:
+        env = VecFrameStack(venv=make_atari_env(args.env, n_envs=args.n_envs, seed=args.rng_seed), n_stack=4)
+    else:
+        env = make_vec_env(args.env, n_envs=args.n_envs, seed=args.rng_seed)
 
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
         model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
@@ -142,6 +147,9 @@ if __name__ == "__main__":
     )
     train_parser.add_argument(
         "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment"
+    )
+    train_parser.add_argument(
+        "--atari", action="store_true", help="Flag for performing Atari preprocessing on observations"
     )
     train_parser.add_argument(
         "--rng-seed",
