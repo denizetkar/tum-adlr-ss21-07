@@ -1,14 +1,13 @@
 #!/bin/bash
 
-mkdir checkpoint
-mkdir checkpoint/breakout_curiosity_pure
-mkdir tensorboard
+mkdir -p checkpoints/breakout_curiosity_pure
+mkdir -p tensorboard
 
 python main.py \
   train \
   --atari \
-  --curiosity-model-path "./checkpoint/breakout_curiosity_pure/curiosity" \
-  --ppo-model-path "./checkpoint/breakout_curiosity_pure/ppo" \
+  --curiosity-model-path "./checkpoints/breakout_curiosity_pure/curiosity" \
+  --ppo-model-path "./checkpoints/breakout_curiosity_pure/ppo" \
   --device cuda \
   --learning-rate 0.0001 \
   --tensorboard-log "./tensorboard/breakout_curiosity_pure" \

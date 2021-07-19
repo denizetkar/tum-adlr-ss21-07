@@ -1,12 +1,11 @@
 #!/bin/bash
 
-mkdir checkpoint
-mkdir checkpoint/pendulum_no_curiosity
-mkdir tensorboard
+mkdir -p checkpoints/pendulum_no_curiosity
+mkdir -p tensorboard
 
 python main.py \
   train \
-  --ppo-model-path "./checkpoint/pendulum_no_curiosity/ppo" \
+  --ppo-model-path "./checkpoints/pendulum_no_curiosity/ppo" \
   --device cuda \
   --tensorboard-log "./tensorboard/pendulum_no_curiosity" \
   --total-timesteps 3000000 \

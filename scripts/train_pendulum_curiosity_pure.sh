@@ -1,13 +1,12 @@
 #!/bin/bash
 
-mkdir checkpoint
-mkdir checkpoint/pendulum_curiosity_pure
-mkdir tensorboard
+mkdir -p checkpoints/pendulum_curiosity_pure
+mkdir -p tensorboard
 
 python main.py \
   train \
-  --curiosity-model-path "./checkpoint/pendulum_curiosity_pure/curiosity" \
-  --ppo-model-path "./checkpoint/pendulum_curiosity_pure/ppo" \
+  --curiosity-model-path "./checkpoints/pendulum_curiosity_pure/curiosity" \
+  --ppo-model-path "./checkpoints/pendulum_curiosity_pure/ppo" \
   --device cuda \
   --tensorboard-log "./tensorboard/pendulum_curiosity_pure" \
   --curiosity-epochs 8 \

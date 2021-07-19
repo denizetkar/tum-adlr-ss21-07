@@ -17,3 +17,6 @@ mkdir roms || exit 1
 sudo apt-get install unar || exit 1
 unar Roms.rar || exit 1
 python3 -m atari_py.import_roms ./Roms/ || exit 1
+
+pip3 install jupyterlab || exit 1
+nohup sh -c 'jupyter lab --no-browser' &> nohup.out &
