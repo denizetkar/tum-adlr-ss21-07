@@ -2,14 +2,12 @@ import argparse
 import os
 import random
 
-import gym
 import matplotlib.pyplot as plt
 import numpy as np
-import pybullet_envs
 import torch as th
 from matplotlib import animation
-from stable_baselines3.common.atari_wrappers import AtariWrapper
 from stable_baselines3.common.env_util import make_atari_env, make_vec_env
+from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
 
 from callbacks import curiosity
 from rl_algo import RecurrentPPO
@@ -25,7 +23,7 @@ def train(args: argparse.Namespace):
     th.manual_seed(args.rng_seed)
 
     if args.atari:
-        env = make_atari_env(AtariWrapper(env=gym.make(args.env)), n_envs=args.n_envs, seed=args.rng_seed)
+        env = VecFrameStack(venv=make_atari_env(args.env, n_envs=args.n_envs, seed=args.rng_seed), n_stack=4)
     else:
         env = make_vec_env(args.env, n_envs=args.n_envs, seed=args.rng_seed)
 
@@ -71,7 +69,7 @@ def train(args: argparse.Namespace):
 
 def play(args: argparse.Namespace):
     if args.atari:
-        env = make_atari_env(AtariWrapper(env=gym.make(args.env)), n_envs=args.n_envs)
+        env = VecFrameStack(venv=make_atari_env(args.env, n_envs=args.n_envs), n_stack=4)
     else:
         env = make_vec_env(args.env, n_envs=args.n_envs)
 
@@ -156,7 +154,7 @@ if __name__ == "__main__":
         help="Type of the policy network.",
     )
     train_parser.add_argument(
-        "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment."
+        "--env", type=str, default="MountainCarContinuous-v0", help="String representation of the gym environment."
     )
     train_parser.add_argument("--atari", action="store_true", help="Flag for performing Atari preprocessing on observations.")
     train_parser.add_argument(
@@ -197,7 +195,7 @@ if __name__ == "__main__":
     )
     play_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection.")
     play_parser.add_argument(
-        "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment."
+        "--env", type=str, default="MountainCarContinuous-v0", help="String representation of the gym environment."
     )
     play_parser.add_argument("--atari", action="store_true", help="Flag for performing Atari preprocessing on observations.")
     play_parser.add_argument("--save-as-gif", action="store_true", help="Flag for saving the played episodes as a gif.")

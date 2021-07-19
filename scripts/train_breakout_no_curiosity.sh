@@ -13,4 +13,5 @@ python3 main.py \
   --total-timesteps 200000000 \
   --n-steps 128 \
   --n-envs 64 \
-  --policy CnnPolicy
+  --policy CnnPolicy \
+  --env "BreakoutNoFrameskip-v4"

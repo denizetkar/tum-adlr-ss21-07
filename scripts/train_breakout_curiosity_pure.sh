@@ -16,5 +16,6 @@ python3 main.py \
   --n-steps 128 \
   --n-envs 64 \
   --policy CnnPolicy \
+  --env "BreakoutNoFrameskip-v4" \
   --use-curiosity \
   --pure-curiosity-reward
