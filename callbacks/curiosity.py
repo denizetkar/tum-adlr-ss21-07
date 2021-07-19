@@ -7,11 +7,13 @@ import torch.nn as nn
 from buffers.episodic import EpisodicRolloutBuffer
 from gym import spaces
 from models import CuriosityModel, MultiCrossEntropyLoss
-from stable_baselines3.common import callbacks, logger
+from stable_baselines3.common import logger
 from stable_baselines3.common.utils import get_device
 
+from .base import EnhancedBaseCallback
 
-class CuriosityCallback(callbacks.BaseCallback):
+
+class CuriosityCallback(EnhancedBaseCallback):
     def __init__(
         self,
         observation_space: gym.Space,
@@ -26,6 +28,7 @@ class CuriosityCallback(callbacks.BaseCallback):
         forward_net_arch: Optional[List[int]] = None,
         model_path: Optional[str] = None,
         device: Union[th.device, str] = "auto",
+        alternate_train: bool = True,
         verbose: int = 0,
     ):
         super().__init__(verbose=verbose)
@@ -35,8 +38,10 @@ class CuriosityCallback(callbacks.BaseCallback):
         self.curiosity_coefficient = curiosity_coefficient
         self.pure_curiosity_reward = pure_curiosity_reward
         self.model_path = model_path
-        self.save_idx = 0
         self.device = get_device(device)
+        self.alternate_train = alternate_train
+        self.save_idx = 0
+        self.rollout_iteration = 0
         self.curiosity_model = CuriosityModel(
             observation_space, action_space, self.device, latent_dim, partially_observable, idm_net_arch, forward_net_arch
         )
@@ -64,16 +69,30 @@ class CuriosityCallback(callbacks.BaseCallback):
         rollout_buffer: EpisodicRolloutBuffer = self.locals["rollout_buffer"]
         # Given (s_t, a_t, s_{t+1}) calculate the curiosity reward and modify the original reward with it.
         self._calculate_curiosity_rewards(rollout_buffer)
-        # Training "forward model" and "inverse dynamics model".
-        self._train_curiosity_model(rollout_buffer)
-        if self.model_path is not None:
-            # Save curiosity model.
-            save_path = "{}{}.model".format(self.model_path, self.save_idx)
-            self.save_idx += 1
-            th.save(self.curiosity_model.state_dict(), save_path)
-            logger.log(f"Saved the curiosity model at {save_path}.")
+        if not self.alternate_train or self.rollout_iteration % 2 == 0:
+            # Training "forward model" and "inverse dynamics model".
+            self._train_curiosity_model(rollout_buffer)
+            if self.model_path is not None:
+                # Save curiosity model.
+                save_path = "{}{}.model".format(self.model_path, self.save_idx)
+                self.save_idx += 1
+                th.save(self.curiosity_model.state_dict(), save_path)
+                logger.log(f"Saved the curiosity model at {save_path}.")
         # Soft reset the rollout buffer so that advantages can be calculated from rewards later.
         rollout_buffer.soft_reset()
+        self.rollout_iteration += 1
+
+    def _on_before_training(self) -> bool:
+        # This callback will be called after the rollout end. Curiosity models will
+        # be trained when the rollout iteration is even. Then, it will get incremented.
+        # So, here if the rollout iteration is odd, we know that curiosity models were
+        # trained and that the actor-critic model should not be trained, IF training is
+        # to be alternated!
+        if self.alternate_train and self.rollout_iteration % 2 == 1:
+            dont_train = True
+        else:
+            dont_train = False
+        return dont_train
 
     def _calculate_curiosity_rewards(self, rollout_buffer: EpisodicRolloutBuffer):
         # Initialize RNN-based dynamics model that extracts features for both "forward model" and "inverse dynamics model".

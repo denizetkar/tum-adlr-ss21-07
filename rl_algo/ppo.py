@@ -7,12 +7,12 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 from buffers.episodic import EpisodicRolloutBuffer
+from callbacks import EnhancedBaseCallback, MaybeCallback
 from gym import spaces
 from policies import ActorCriticPolicy
 from stable_baselines3.common import logger
 from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
+from stable_baselines3.common.type_aliases import GymEnv, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean
 from stable_baselines3.common.vec_env import VecEnv
 from torch.nn import functional as F
@@ -184,7 +184,7 @@ class RecurrentPPO(BaseAlgorithm):
             self.clip_range_vf = get_schedule_fn(self.clip_range_vf)
 
     def collect_rollouts(
-        self, env: VecEnv, callback: BaseCallback, rollout_buffer: EpisodicRolloutBuffer, n_rollout_steps: int
+        self, env: VecEnv, callback: EnhancedBaseCallback, rollout_buffer: EpisodicRolloutBuffer, n_rollout_steps: int
     ) -> bool:
         """
         Collect experiences using the current policy and fill an ``EpisodicRolloutBuffer``.
@@ -428,6 +428,10 @@ class RecurrentPPO(BaseAlgorithm):
 
             if continue_training is False:
                 break
+
+            dont_train = callback.on_before_training()
+            if dont_train:
+                continue
 
             iteration += 1
             self._update_current_progress_remaining(self.num_timesteps, total_timesteps)
