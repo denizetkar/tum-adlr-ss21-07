@@ -416,6 +416,8 @@ class RecurrentPPO(BaseAlgorithm):
     ) -> "RecurrentPPO":
         iteration = 0
 
+        if callback is None:
+            callback = EnhancedBaseCallback()
         total_timesteps, callback = self._setup_learn(
             total_timesteps, eval_env, callback, eval_freq, n_eval_episodes, eval_log_path, reset_num_timesteps, tb_log_name
         )

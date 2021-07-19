@@ -58,12 +58,6 @@ class CuriosityCallback(EnhancedBaseCallback):
         else:
             raise NotImplementedError(f"{action_space} action space is not supported")
 
-    def _on_step(self) -> bool:
-        """
-        :return: If the callback returns False, training is aborted early.
-        """
-        return True
-
     def _on_rollout_end(self) -> None:
         # Get the rollout buffer for curiosity reward calculation and training.
         rollout_buffer: EpisodicRolloutBuffer = self.locals["rollout_buffer"]
