@@ -25,7 +25,7 @@ def train(args: argparse.Namespace):
     th.manual_seed(args.rng_seed)
 
     if args.atari:
-        env = make_atari_env(AtariWrapper(venv=gym.make(args.env)), n_envs=args.n_envs, seed=args.rng_seed)
+        env = make_atari_env(AtariWrapper(env=gym.make(args.env)), n_envs=args.n_envs, seed=args.rng_seed)
     else:
         env = make_vec_env(args.env, n_envs=args.n_envs, seed=args.rng_seed)
 
@@ -71,7 +71,7 @@ def train(args: argparse.Namespace):
 
 def play(args: argparse.Namespace):
     if args.atari:
-        env = make_atari_env(AtariWrapper(venv=gym.make(args.env)), n_envs=args.n_envs)
+        env = make_atari_env(AtariWrapper(env=gym.make(args.env)), n_envs=args.n_envs)
     else:
         env = make_vec_env(args.env, n_envs=args.n_envs)
 
