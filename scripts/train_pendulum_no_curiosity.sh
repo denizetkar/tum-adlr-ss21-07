@@ -3,7 +3,7 @@
 mkdir -p checkpoints/pendulum_no_curiosity
 mkdir -p tensorboard
 
-python main.py \
+python3 main.py \
   train \
   --ppo-model-path "./checkpoints/pendulum_no_curiosity/ppo" \
   --device cuda \

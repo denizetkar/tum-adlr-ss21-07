@@ -3,7 +3,7 @@
 mkdir -p checkpoints/breakout_curiosity
 mkdir -p tensorboard
 
-python main.py \
+python3 main.py \
   train \
   --atari \
   --curiosity-model-path "./checkpoints/breakout_curiosity/curiosity" \

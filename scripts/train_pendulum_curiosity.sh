@@ -3,7 +3,7 @@
 mkdir -p checkpoints/pendulum_curiosity
 mkdir -p tensorboard
 
-python main.py \
+python3 main.py \
   train \
   --curiosity-model-path "./checkpoints/pendulum_curiosity/curiosity" \
   --ppo-model-path "./checkpoints/pendulum_curiosity/ppo" \

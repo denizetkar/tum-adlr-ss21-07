@@ -3,7 +3,7 @@
 mkdir -p checkpoints/breakout_no_curiosity
 mkdir -p tensorboard
 
-python main.py \
+python3 main.py \
   train \
   --atari \
   --ppo-model-path ./checkpoints/breakout_no_curiosity/ppo \
