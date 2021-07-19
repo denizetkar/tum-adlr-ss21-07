@@ -7,9 +7,8 @@ import torch.nn as nn
 from buffers.episodic import EpisodicRolloutBuffer
 from gym import spaces
 from models import CuriosityModel, MultiCrossEntropyLoss
-from stable_baselines3.common import callbacks
+from stable_baselines3.common import callbacks, logger
 from stable_baselines3.common.utils import get_device
-from stable_baselines3.common import logger
 
 
 class CuriosityCallback(callbacks.BaseCallback):
@@ -69,7 +68,7 @@ class CuriosityCallback(callbacks.BaseCallback):
         self._train_curiosity_model(rollout_buffer)
         if self.model_path is not None:
             # Save curiosity model.
-            save_path = self.model_path + str(self.save_idx) + ".model"
+            save_path = "{}{}.model".format(self.model_path, self.save_idx)
             self.save_idx += 1
             th.save(self.curiosity_model.state_dict(), save_path)
             logger.log(f"Saved the curiosity model at {save_path}.")

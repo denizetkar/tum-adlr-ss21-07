@@ -447,17 +447,17 @@ class RecurrentPPO(BaseAlgorithm):
             with self.model_lock:
                 self.train()
             # Save model without blocking
-            threading.Thread(target=self.safe_save, args=[total_timesteps]).start()
+            threading.Thread(target=self.safe_save, args=[iteration - 1]).start()
 
         callback.on_training_end()
 
         return self
 
-    def safe_save(self, total_timesteps: int):
+    def safe_save(self, iteration: int):
         if self.model_path is None:
             return
         with self.model_lock:
-            save_path = self.model_path + str(self.num_timesteps * 10 // total_timesteps) + ".zip"
+            save_path = "{}{}.zip".format(self.model_path, iteration)
             self.save(save_path)
             logger.log(f"Saved the PPO model at {save_path}.")
 
