@@ -4,6 +4,7 @@ python3 -m venv venv || exit 1
 source ./venv/bin/activate || exit 1
 pip3 install --upgrade pip || exit 1
 # pip3 cache purge || exit 1
+pip3 install opencv-python==4.5.3.56 || exit 1
 pip3 install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html || exit 1
 pip3 install gym==0.18.3 || exit 1
 pip3 install stable-baselines3==1.0 || exit 1
