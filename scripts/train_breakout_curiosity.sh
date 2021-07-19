@@ -10,10 +10,11 @@ python main.py \
   --curiosity-model-path "./checkpoint/breakout_curiosity/curiosity" \
   --ppo-model-path "./checkpoint/breakout_curiosity/ppo" \
   --device cuda \
+  --learning-rate 0.0001 \
   --tensorboard-log "./tensorboard/breakout_curiosity" \
   --curiosity-epochs 8 \
-  --total-timesteps 3000000 \
-  --n-steps 2000 \
-  --n-envs 4 \
+  --total-timesteps 200000000 \
+  --n-steps 128 \
+  --n-envs 64 \
   --policy CnnPolicy \
   --use-curiosity

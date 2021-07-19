@@ -9,8 +9,9 @@ python main.py \
   --atari \
   --ppo-model-path ./checkpoint/breakout_no_curiosity/ppo \
   --device cuda \
+  --learning-rate 0.0001 \
   --tensorboard-log ./tensorboard/breakout_no_curiosity \
-  --total-timesteps 3000000 \
-  --n-steps 2000 \
-  --n-envs 4 \
+  --total-timesteps 200000000 \
+  --n-steps 128 \
+  --n-envs 64 \
   --policy CnnPolicy

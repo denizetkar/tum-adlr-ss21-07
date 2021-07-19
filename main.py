@@ -2,13 +2,14 @@ import argparse
 import os
 import random
 
+import gym
 import matplotlib.pyplot as plt
 import numpy as np
+import pybullet_envs
 import torch as th
 from matplotlib import animation
-from stable_baselines3.common.env_util import make_vec_env, make_atari_env
-from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
-import pybullet_envs
+from stable_baselines3.common.atari_wrappers import AtariWrapper
+from stable_baselines3.common.env_util import make_atari_env, make_vec_env
 
 from callbacks import curiosity
 from rl_algo import RecurrentPPO
@@ -24,7 +25,7 @@ def train(args: argparse.Namespace):
     th.manual_seed(args.rng_seed)
 
     if args.atari:
-        env = VecFrameStack(venv=make_atari_env(args.env, n_envs=args.n_envs, seed=args.rng_seed), n_stack=4)
+        env = make_atari_env(AtariWrapper(venv=gym.make(args.env)), n_envs=args.n_envs, seed=args.rng_seed)
     else:
         env = make_vec_env(args.env, n_envs=args.n_envs, seed=args.rng_seed)
 
@@ -35,6 +36,7 @@ def train(args: argparse.Namespace):
         model = RecurrentPPO(
             args.policy,
             env,
+            learning_rate=args.learning_rate,
             n_steps=args.n_steps,
             min_batch_size=64,
             policy_kwargs=policy_kwargs,
@@ -47,6 +49,7 @@ def train(args: argparse.Namespace):
         curiosity.CuriosityCallback(
             model.env.observation_space,
             model.env.action_space,
+            learning_rate=args.learning_rate,
             n_epochs=args.curiosity_epochs,
             latent_dim=args.rnn_hidden_dim,
             partially_observable=args.partially_observable,
@@ -67,7 +70,11 @@ def train(args: argparse.Namespace):
 
 
 def play(args: argparse.Namespace):
-    env = make_vec_env(args.env, n_envs=args.n_envs)
+    if args.atari:
+        env = make_atari_env(AtariWrapper(venv=gym.make(args.env)), n_envs=args.n_envs)
+    else:
+        env = make_vec_env(args.env, n_envs=args.n_envs)
+
     model: RecurrentPPO = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
 
     obs = env.reset()
@@ -108,13 +115,13 @@ if __name__ == "__main__":
     train_parser.add_argument(
         "--curiosity-model-path",
         type=str,
-        help="Path to the curiosity model file to be loaded/saved. Please omit an extension",
+        help="Path to the curiosity model file to be loaded/saved. Please omit an extension.",
     )
     train_parser.add_argument(
         "--ppo-model-path",
         type=str,
         required=True,
-        help="Path to the `RecurrentPPO` model file to be loaded/saved. Please omit an extension",
+        help="Path to the `RecurrentPPO` model file to be loaded/saved. Please omit an extension.",
     )
     train_parser.add_argument(
         "--tensorboard-log",
@@ -130,27 +137,28 @@ if __name__ == "__main__":
         "See https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device for more details.",
     )
     train_parser.add_argument(
+        "--learning-rate", type=float, default=3e-4, help="Learning rate to be used for all types of training."
+    )
+    train_parser.add_argument(
         "--curiosity-epochs", type=int, default=3, help="Number of epochs to train the curiosity models per 'collect_rollout'."
     )
-    train_parser.add_argument("--total-timesteps", type=int, default=20000, help="Total number of timestamps for training")
+    train_parser.add_argument("--total-timesteps", type=int, default=20000, help="Total number of timestamps for training.")
     train_parser.add_argument(
-        "--n-steps", type=int, default=1024, help="Maximum number of timesteps per rollout per environment"
+        "--n-steps", type=int, default=1024, help="Maximum number of timesteps per rollout per environment."
     )
-    train_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection")
-    train_parser.add_argument("--rnn-hidden-dim", type=int, default=512, help="Hidden dimension size for RNNs")
+    train_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection.")
+    train_parser.add_argument("--rnn-hidden-dim", type=int, default=512, help="Hidden dimension size for RNNs.")
     train_parser.add_argument(
         "--policy",
         type=str,
         default="CnnRnnPolicy",
         choices=["MlpPolicy", "CnnPolicy", "RnnPolicy", "CnnRnnPolicy"],
-        help="Type of the policy network",
+        help="Type of the policy network.",
     )
     train_parser.add_argument(
-        "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment"
+        "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment."
     )
-    train_parser.add_argument(
-        "--atari", action="store_true", help="Flag for performing Atari preprocessing on observations"
-    )
+    train_parser.add_argument("--atari", action="store_true", help="Flag for performing Atari preprocessing on observations.")
     train_parser.add_argument(
         "--rng-seed",
         type=int,
@@ -162,7 +170,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Flag for informing the model to use RNNs due to partial observability of the RL problem.",
     )
-    train_parser.add_argument("--use-curiosity", action="store_true", help="Flag for using curiosity in the training")
+    train_parser.add_argument("--use-curiosity", action="store_true", help="Flag for using curiosity in the training.")
     train_parser.add_argument(
         "--pure-curiosity-reward",
         action="store_true",
@@ -187,10 +195,11 @@ if __name__ == "__main__":
         help="String representation of the device to be used by PyTorch."
         "See https://pytorch.org/docs/stable/tensor_attributes.html#torch.torch.device for more details.",
     )
-    play_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection")
+    play_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection.")
     play_parser.add_argument(
-        "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment"
+        "--env", type=str, default="BreakoutNoFrameskip-v4", help="String representation of the gym environment."
     )
+    play_parser.add_argument("--atari", action="store_true", help="Flag for performing Atari preprocessing on observations.")
     play_parser.add_argument("--save-as-gif", action="store_true", help="Flag for saving the played episodes as a gif.")
     play_parser.add_argument("--gif-frame-size", type=int, default=1000, help="Number of frames to be saved as a gif.")
     play_parser.add_argument("--gif-path", type=str, default="gym_animation.gif", help="Path to save the .gif file.")
