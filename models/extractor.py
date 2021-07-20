@@ -9,6 +9,7 @@ from stable_baselines3.common.utils import get_device
 from torch import nn
 from torchvision import models
 
+from .cnn import BasicBlock, DenseBlock
 from .mlp import MLP
 from .rnn.lstms import LayerNormSemeniutaLSTM, MultiLayerLSTM
 
@@ -179,6 +180,7 @@ class MlpExtractor(nn.Module):
         # Create networks
         # If the list of layers is empty, the network will just act as an Identity module
         self.shared_net = MLP(feature_dim, shared_layers, activation_fn=activation_fn, dropout=0.0).to(device)
+        self.activation_fn = activation_fn()
         self.policy_net = MLP(last_shared_dim, policy_layers, activation_fn=activation_fn, dropout=0.0).to(device)
         self.value_net = MLP(last_shared_dim, value_layers, activation_fn=activation_fn, dropout=0.0).to(device)
 
@@ -198,18 +200,19 @@ class MlpExtractor(nn.Module):
         :return: latent_policy, latent_value of the specified network.
             If all layers are shared, then ``latent_policy == latent_value``
         """
-        shared_latent = self.shared_net(features)
+        shared_latent = self.activation_fn(self.shared_net(features))
         return self.policy_net(shared_latent), self.value_net(shared_latent)
 
 
 class CnnExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Space, device: Union[th.device, str] = "auto", features_dim: int = 512):
+    def __init__(self, observation_space: gym.spaces.Space, features_dim: int = 512):
         super().__init__(observation_space, features_dim)
-        device = get_device(device)
+        # We assume CxHxW images (channels first)
+        # Re-ordering will be done by pre-preprocessing or wrapper
         assert is_image_space(observation_space), (
             "You should use CnnExtractor "
             f"only with images not with {observation_space}\n"
-            "(you are probably using `CnnRnnPolicy` instead of `RnnPolicy`)\n"
+            "(you are probably using `CnnPolicy` instead of `MlpPolicy`)\n"
             "If you are using a custom environment,\n"
             "please check it using our env checker:\n"
             "https://stable-baselines3.readthedocs.io/en/master/common/env_checker.html"
@@ -217,13 +220,13 @@ class CnnExtractor(BaseFeaturesExtractor):
         n_input_channels = observation_space.shape[0]
         assert n_input_channels == 3, "Number of input channels should be 3 for images"
         pretrained_vgg = models.vgg16(pretrained=True)
-        self.features = pretrained_vgg.features.to(device)
+        self.features = pretrained_vgg.features
 
         with th.no_grad():
-            latent_dims = self.features(th.as_tensor(observation_space.sample()[None]).to(device).float()).shape
+            latent_dims = self.features(th.as_tensor(observation_space.sample()[None]).float()).shape
 
         latent_h, latent_w = latent_dims[2:]
-        self.avg_pool = nn.AdaptiveAvgPool2d((latent_h, latent_w)).to(device)
+        self.avg_pool = nn.AdaptiveAvgPool2d((latent_h, latent_w))
         self.classifier = nn.Sequential(
             nn.Linear(512 * latent_h * latent_w, 4096),
             nn.ReLU(True),
@@ -232,7 +235,7 @@ class CnnExtractor(BaseFeaturesExtractor):
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(4096, self.features_dim),
-        ).to(device)
+        )
         # TODO: Initialize weights to use this extractor
 
     def forward(self, x):
@@ -284,16 +287,21 @@ class EnhancedNatureCNN(BaseFeaturesExtractor):
             "https://stable-baselines3.readthedocs.io/en/master/common/env_checker.html"
         )
         n_input_channels = observation_space.shape[0]
+        dense_layer_cnt, growth_rate = 3, 16
+        dense_out_channels = n_input_channels + dense_layer_cnt * growth_rate
         self.cnn = nn.Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=0),
+            DenseBlock(dense_layer_cnt, n_input_channels, growth_rate, BasicBlock),
+            nn.PReLU(),
+            nn.BatchNorm2d(dense_out_channels),
+            nn.Conv2d(dense_out_channels, 32, kernel_size=3, stride=2, padding=1),
             nn.PReLU(),
             nn.BatchNorm2d(32),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.PReLU(),
             nn.BatchNorm2d(64),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
             nn.PReLU(),
-            nn.BatchNorm2d(64),
+            nn.BatchNorm2d(128),
             nn.Flatten(),
         )
 
