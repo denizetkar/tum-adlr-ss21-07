@@ -21,6 +21,7 @@ class CuriosityCallback(EnhancedBaseCallback):
         learning_rate: float = 3e-4,
         n_epochs: int = 3,
         curiosity_coefficient: float = 0.5,
+        reg_coefficient: float = 0.1,
         latent_dim: int = 64,
         partially_observable: bool = True,
         pure_curiosity_reward: bool = False,
@@ -47,7 +48,7 @@ class CuriosityCallback(EnhancedBaseCallback):
         )
         if model_path is not None and os.path.isfile(model_path):
             self.curiosity_model.load_state_dict(th.load(model_path))
-        self.optimizer = th.optim.Adam(self.curiosity_model.parameters(), lr=learning_rate)
+        self.optimizer = th.optim.Adam(self.curiosity_model.parameters(), lr=learning_rate, weight_decay=reg_coefficient)
         self.forward_loss = nn.MSELoss()
         if isinstance(action_space, spaces.Box):
             self.inverse_dynamics_loss = nn.MSELoss()

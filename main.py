@@ -50,6 +50,7 @@ def train(args: argparse.Namespace):
             model.env.action_space,
             learning_rate=args.learning_rate,
             n_epochs=args.curiosity_epochs,
+            reg_coefficient=args.curiosity_reg_coef,
             latent_dim=args.rnn_hidden_dim,
             partially_observable=args.partially_observable,
             pure_curiosity_reward=args.pure_curiosity_reward,
@@ -141,6 +142,9 @@ if __name__ == "__main__":
     train_parser.add_argument("--ppo-epochs", type=int, default=10, help="Number of training epochs for PPO.")
     train_parser.add_argument(
         "--curiosity-epochs", type=int, default=3, help="Number of epochs to train the curiosity models per 'collect_rollout'."
+    )
+    train_parser.add_argument(
+        "--curiosity-reg-coef", type=float, default=0.1, help="Regularization coefficient for training curiosity models."
     )
     train_parser.add_argument("--total-timesteps", type=int, default=20000, help="Total number of timestamps for training.")
     train_parser.add_argument(
