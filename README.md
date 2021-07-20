@@ -17,10 +17,10 @@
     usage: main.py [-h] {train,play} ...
 
     optional arguments:
-      -h, --help    show this help message and exit
+    -h, --help    show this help message and exit
 
     Subcommand:
-      {train,play}
+    {train,play}
         train       Subcommand for training the PPO and curiosity models.
         play        Subcommand for getting the PPO model to play in the
                     environment for which it was trained.
@@ -29,10 +29,15 @@
     usage: main.py train [-h] [--curiosity-model-path CURIOSITY_MODEL_PATH]
                          --ppo-model-path PPO_MODEL_PATH --tensorboard-log
                          TENSORBOARD_LOG [--device DEVICE]
+                         [--learning-rate LEARNING_RATE]
+                         [--min-batch-size MIN_BATCH_SIZE]
+                         [--ppo-epochs PPO_EPOCHS]
                          [--curiosity-epochs CURIOSITY_EPOCHS]
+                         [--curiosity-reg-coef CURIOSITY_REG_COEF]
                          [--total-timesteps TOTAL_TIMESTEPS] [--n-steps N_STEPS]
                          [--n-envs N_ENVS] [--rnn-hidden-dim RNN_HIDDEN_DIM]
-                         [--policy {RnnPolicy,CnnRnnPolicy}] [--env ENV]
+                         [--policy {MlpPolicy,CnnPolicy,RnnPolicy,CnnRnnPolicy}]
+                         [--env ENV] [--atari] [--rng-seed RNG_SEED]
                          [--partially-observable] [--use-curiosity]
                          [--pure-curiosity-reward]
 
@@ -40,51 +45,73 @@
       -h, --help            show this help message and exit
       --curiosity-model-path CURIOSITY_MODEL_PATH
                             Path to the curiosity model file to be loaded/saved.
+                            Please omit an extension.
       --ppo-model-path PPO_MODEL_PATH
                             Path to the `RecurrentPPO` model file to be
-                            loaded/saved. Note that it is a '.zip' file.
+                            loaded/saved. Please omit an extension.
       --tensorboard-log TENSORBOARD_LOG
                             Path to the directory for saving the tensorboard logs.
                             Directory will be created if it does not exist.
       --device DEVICE       String representation of the device to be used by
                             PyTorch.See https://pytorch.org/docs/stable/tensor_att
                             ributes.html#torch.torch.device for more details.
+      --learning-rate LEARNING_RATE
+                            Learning rate to be used for all types of training.
+      --min-batch-size MIN_BATCH_SIZE
+                            Minimum batch size for training PPO. Must be >0 and
+                            <=(n_envs * n_steps)
+      --ppo-epochs PPO_EPOCHS
+                            Number of training epochs for PPO.
       --curiosity-epochs CURIOSITY_EPOCHS
                             Number of epochs to train the curiosity models per
                             'collect_rollout'.
+      --curiosity-reg-coef CURIOSITY_REG_COEF
+                            Regularization coefficient for training curiosity
+                            models.
       --total-timesteps TOTAL_TIMESTEPS
-                            Total number of timestamps for training
+                            Total number of timestamps for training.
       --n-steps N_STEPS     Maximum number of timesteps per rollout per
-                            environment
-      --n-envs N_ENVS       Number of environments for data collection
+                            environment.
+      --n-envs N_ENVS       Number of environments for data collection.
       --rnn-hidden-dim RNN_HIDDEN_DIM
-                            Hidden dimension size for RNNs
-      --policy {RnnPolicy,CnnRnnPolicy}
-                            Type of the policy network
-      --env ENV             String representation of the gym environment
+                            Hidden dimension size for RNNs.
+      --policy {MlpPolicy,CnnPolicy,RnnPolicy,CnnRnnPolicy}
+                            Type of the policy network.
+      --env ENV             String representation of the gym environment.
+      --atari               Flag for performing Atari preprocessing on
+                            observations.
+      --rng-seed RNG_SEED   The seed to be used for all random number generators
+                            for repeatable experiments.
       --partially-observable
                             Flag for informing the model to use RNNs due to
                             partial observability of the RL problem.
-      --use-curiosity       Flag for using curiosity in the training
+      --use-curiosity       Flag for using curiosity in the training.
       --pure-curiosity-reward
                             Flag for telling to use pure curiosity rewards instead
                             of mixed curiosity reward (extrinsic + coef *
                             curiosity).
 
 #### `play` subcommand usage
-    usage: main.py play [-h] --ppo-model-path PPO_MODEL_PATH [--device DEVICE]
-                        [--n-envs N_ENVS] [--env ENV]
+    usage: main.py play [-h] --ppo-model-path PPO_MODEL_PATH [--device DEVICE]    
+                        [--n-envs N_ENVS] [--env ENV] [--atari] [--save-as-gif]   
+                        [--gif-frame-size GIF_FRAME_SIZE] [--gif-path GIF_PATH]   
 
     optional arguments:
       -h, --help            show this help message and exit
       --ppo-model-path PPO_MODEL_PATH
                             Path to the `RecurrentPPO` model file to be
                             loaded/saved. Note that it is a '.zip' file.
-      --device DEVICE       String representation of the device to be used by
+      --device DEVICE       String representation of the device to be used by     
                             PyTorch.See https://pytorch.org/docs/stable/tensor_att
-                            ributes.html#torch.torch.device for more details.
-      --n-envs N_ENVS       Number of environments for data collection
-      --env ENV             String representation of the gym environment
+                            ributes.html#torch.torch.device for more details.     
+      --n-envs N_ENVS       Number of environments for data collection.
+      --env ENV             String representation of the gym environment.
+      --atari               Flag for performing Atari preprocessing on
+                            observations.
+      --save-as-gif         Flag for saving the played episodes as a gif.
+      --gif-frame-size GIF_FRAME_SIZE
+                            Number of frames to be saved as a gif.
+      --gif-path GIF_PATH   Path to save the .gif file.
 
 ### Option 2: Use pre-defined scripts to train. More scripts will be added soon.
 Run one the following scripts **from the project root**

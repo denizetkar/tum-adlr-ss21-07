@@ -36,7 +36,7 @@ def train(args: argparse.Namespace):
             env,
             learning_rate=args.learning_rate,
             n_steps=args.n_steps,
-            min_batch_size=64,
+            min_batch_size=args.min_batch_size,
             n_epochs=args.ppo_epochs,
             policy_kwargs=policy_kwargs,
             device=args.device,
@@ -139,6 +139,12 @@ if __name__ == "__main__":
     train_parser.add_argument(
         "--learning-rate", type=float, default=3e-4, help="Learning rate to be used for all types of training."
     )
+    train_parser.add_argument(
+        "--min-batch-size",
+        type=int,
+        default=64,
+        help="Minimum batch size for training PPO. Must be >0 and <=(n_envs * n_steps)",
+    )
     train_parser.add_argument("--ppo-epochs", type=int, default=10, help="Number of training epochs for PPO.")
     train_parser.add_argument(
         "--curiosity-epochs", type=int, default=3, help="Number of epochs to train the curiosity models per 'collect_rollout'."
@@ -155,7 +161,7 @@ if __name__ == "__main__":
     train_parser.add_argument(
         "--policy",
         type=str,
-        default="CnnRnnPolicy",
+        default="MlpPolicy",
         choices=["MlpPolicy", "CnnPolicy", "RnnPolicy", "CnnRnnPolicy"],
         help="Type of the policy network.",
     )

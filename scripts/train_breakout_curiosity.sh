@@ -13,6 +13,7 @@ python3 main.py \
   --tensorboard-log "./tensorboard/breakout_curiosity" \
   --ppo-epochs 4 \
   --curiosity-epochs 3 \
+  --curiosity-reg-coef 0.001 \
   --total-timesteps 200000000 \
   --n-steps 128 \
   --n-envs 64 \
