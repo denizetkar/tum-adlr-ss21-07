@@ -123,7 +123,7 @@ class RecurrentPPO(BaseAlgorithm):
         )
 
         self.n_steps = n_steps
-        self.gamma = max(min(gamma, 0.0), 1.0)
+        self.gamma = min(max(gamma, 0.0), 1.0)
         self.gae_lambda = gae_lambda
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
