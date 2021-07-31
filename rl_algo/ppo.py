@@ -16,6 +16,7 @@ from stable_baselines3.common.type_aliases import GymEnv, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean
 from stable_baselines3.common.vec_env import VecEnv
 from torch.nn import functional as F
+from utils import smart_clamp
 
 
 class RecurrentPPO(BaseAlgorithm):
@@ -82,6 +83,8 @@ class RecurrentPPO(BaseAlgorithm):
         gae_lambda: float = 0.95,
         clip_range: Union[float, Schedule] = 0.2,
         clip_range_vf: Union[None, float, Schedule] = None,
+        max_absolute_reward: Optional[float] = None,
+        max_eps_len: Optional[int] = None,
         ent_coef: float = 0.0,
         vf_coef: float = 0.5,
         max_grad_norm: float = 0.5,
@@ -120,7 +123,7 @@ class RecurrentPPO(BaseAlgorithm):
         )
 
         self.n_steps = n_steps
-        self.gamma = gamma
+        self.gamma = max(min(gamma, 0.0), 1.0)
         self.gae_lambda = gae_lambda
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
@@ -141,6 +144,11 @@ class RecurrentPPO(BaseAlgorithm):
         self.min_batch_size = min_batch_size
         self.n_epochs = n_epochs
         self.clip_range = clip_range
+        if clip_range_vf is None and max_absolute_reward is not None and (gamma < 1.0 or max_eps_len is not None):
+            max_absolute_reward = max(max_absolute_reward, 0.0)
+            max_eps_len = float("inf") if max_eps_len is None else max_eps_len
+            discount_coef = ((1 - gamma ** (max_eps_len + 1)) / (1 - gamma)) if gamma < 1.0 else max_eps_len
+            clip_range_vf = max_absolute_reward * discount_coef
         self.clip_range_vf = clip_range_vf
         self.target_kl = target_kl
         self.model_path = model_path
@@ -318,7 +326,7 @@ class RecurrentPPO(BaseAlgorithm):
 
                 # clipped surrogate loss
                 policy_loss_1 = advantages * ratio
-                policy_loss_2 = advantages * th.clamp(ratio, 1 - clip_range, 1 + clip_range)
+                policy_loss_2 = advantages * smart_clamp(ratio, 1 - clip_range, 1 + clip_range, is_gradient_descent=True)
                 policy_loss = -th.min(policy_loss_1, policy_loss_2).mean()
 
                 # Logging
@@ -332,8 +340,8 @@ class RecurrentPPO(BaseAlgorithm):
                 else:
                     # Clip the different between old and new value
                     # NOTE: this depends on the reward scaling
-                    values_pred = rollout_data.old_values + th.clamp(
-                        values - rollout_data.old_values, -clip_range_vf, clip_range_vf
+                    values_pred = rollout_data.old_values + smart_clamp(
+                        values - rollout_data.old_values, -clip_range_vf, clip_range_vf, is_gradient_descent=True
                     )
                 # Value loss using the TD(gae_lambda) target
                 value_loss = F.mse_loss(rollout_data.returns, values_pred)
@@ -368,6 +376,10 @@ class RecurrentPPO(BaseAlgorithm):
         explained_var = explained_variance(self.rollout_buffer.values.flatten(), self.rollout_buffer.returns.flatten())
 
         # Logs
+        self.rollout_buffer.soft_reset()
+        logger.record(
+            "train/ep_train_rew_mean", safe_mean([ep_info["r"] for ep_info in self.rollout_buffer.get_episode_infos()])
+        )
         logger.record("train/entropy_loss", np.mean(entropy_losses))
         logger.record("train/policy_gradient_loss", np.mean(pg_losses))
         logger.record("train/value_loss", np.mean(value_losses))

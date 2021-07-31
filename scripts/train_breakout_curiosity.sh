@@ -9,6 +9,7 @@ python3 main.py \
   --curiosity-model-path "./checkpoints/breakout_curiosity/curiosity" \
   --ppo-model-path "./checkpoints/breakout_curiosity/ppo" \
   --device cuda \
+  --alternate-train \
   --learning-rate 0.0001 \
   --tensorboard-log "./tensorboard/breakout_curiosity" \
   --ppo-epochs 4 \

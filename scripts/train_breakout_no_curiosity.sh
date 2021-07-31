@@ -8,6 +8,7 @@ python3 main.py \
   --atari \
   --ppo-model-path ./checkpoints/breakout_no_curiosity/ppo \
   --device cuda \
+  --alternate-train \
   --learning-rate 0.0001 \
   --tensorboard-log ./tensorboard/breakout_no_curiosity \
   --total-timesteps 200000000 \

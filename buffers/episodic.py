@@ -1,4 +1,4 @@
-from typing import Generator, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, NamedTuple, Optional, Tuple, Union
 
 import numpy as np
 import torch as th
@@ -62,6 +62,7 @@ class EpisodicRolloutBuffer(RolloutBuffer):
     ):
         self._ep_boundaries: List[EpisodeBoundary] = []
         super().__init__(buffer_size, observation_space, action_space, device, gae_lambda, gamma, n_envs)
+        self._env_infos: List[Dict[str, Any]] = [{"r": 0.0} for _ in range(self.dones.shape[1])]
 
     def unflatten_and_swap(self, arr: np.ndarray) -> np.ndarray:
         """
@@ -149,3 +150,15 @@ class EpisodicRolloutBuffer(RolloutBuffer):
             batch_inds,
         )
         return EpisodicRolloutBufferSamples(*tuple(map(self.to_torch, data)))
+
+    def get_episode_infos(self) -> List[Dict[str, Any]]:
+        # This method assumes that buffers are not swapped and flattened!
+        ep_infos: List[Dict[str, Any]] = []
+        for step in range(self.dones.shape[0]):
+            for env_index, env_info in enumerate(self._env_infos):
+                if self.dones[step, env_index]:
+                    ep_infos.append(env_info.copy())
+                    env_info["r"] = float(self.rewards[step, env_index])
+                    continue
+                env_info["r"] += self.rewards[step, env_index]
+        return ep_infos

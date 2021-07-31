@@ -21,7 +21,7 @@ class CuriosityCallback(EnhancedBaseCallback):
         learning_rate: float = 3e-4,
         n_epochs: int = 3,
         curiosity_coefficient: float = 0.5,
-        reg_coefficient: float = 0.1,
+        reg_coefficient: float = 0.001,
         latent_dim: int = 64,
         partially_observable: bool = True,
         pure_curiosity_reward: bool = False,
@@ -109,7 +109,7 @@ class CuriosityCallback(EnhancedBaseCallback):
                 _, next_latent_features, latent_features = self.curiosity_model(
                     rollout_data.observations, actions, rollout_data.dones
                 )
-                curiosity_rewards = th.mean((next_latent_features - latent_features[1:]) ** 2, dim=1)
+                curiosity_rewards = th.tanh(th.mean((next_latent_features - latent_features[1:]) ** 2, dim=1))
                 if self.pure_curiosity_reward:
                     rollout_data.rewards[:-1] = self.curiosity_coefficient * curiosity_rewards
                 else:
