@@ -377,9 +377,8 @@ class RecurrentPPO(BaseAlgorithm):
 
         # Logs
         self.rollout_buffer.soft_reset()
-        logger.record(
-            "train/ep_train_rew_mean", safe_mean([ep_info["r"] for ep_info in self.rollout_buffer.get_episode_infos()])
-        )
+        self.rollout_buffer.calculate_episode_infos()
+        logger.record("train/ep_train_rew_mean", safe_mean([ep_info["r"] for ep_info in self.rollout_buffer.eps_info_queue]))
         logger.record("train/entropy_loss", np.mean(entropy_losses))
         logger.record("train/policy_gradient_loss", np.mean(pg_losses))
         logger.record("train/value_loss", np.mean(value_losses))
