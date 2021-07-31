@@ -16,7 +16,7 @@ pip3 install pybullet==3.1.7 || exit 1
 pip3 install atari-py==0.2.9 || exit 1
 wget http://www.atarimania.com/roms/Roms.rar || exit 1
 mkdir roms || exit 1
-sudo apt-get install unar || exit 1
+sudo apt-get install -y unar || exit 1
 unar Roms.rar || exit 1
 python3 -m atari_py.import_roms ./Roms/ || exit 1
 

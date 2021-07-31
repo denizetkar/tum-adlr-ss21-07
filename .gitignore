@@ -263,3 +263,5 @@ Thumbs.db
 /checkpoints/
 /tensorboard/
 *.zip
+*.rar
+*.out
