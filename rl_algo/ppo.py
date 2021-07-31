@@ -144,10 +144,10 @@ class RecurrentPPO(BaseAlgorithm):
         self.min_batch_size = min_batch_size
         self.n_epochs = n_epochs
         self.clip_range = clip_range
-        if clip_range_vf is None and max_absolute_reward is not None and (gamma < 1.0 or max_eps_len is not None):
+        if clip_range_vf is None and max_absolute_reward is not None and (self.gamma < 1.0 or max_eps_len is not None):
             max_absolute_reward = max(max_absolute_reward, 0.0)
             max_eps_len = float("inf") if max_eps_len is None else max_eps_len
-            discount_coef = ((1 - gamma ** (max_eps_len + 1)) / (1 - gamma)) if gamma < 1.0 else max_eps_len
+            discount_coef = ((1 - self.gamma ** (max_eps_len + 1)) / (1 - self.gamma)) if self.gamma < 1.0 else max_eps_len
             clip_range_vf = max_absolute_reward * discount_coef
         self.clip_range_vf = clip_range_vf
         self.target_kl = target_kl
