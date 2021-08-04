@@ -2,6 +2,7 @@ import os
 from typing import List, Optional, Union
 
 import gym
+import numpy as np
 import torch as th
 import torch.nn as nn
 from buffers.episodic import EpisodicRolloutBuffer
@@ -121,6 +122,7 @@ class CuriosityCallback(EnhancedBaseCallback):
 
     def _train_curiosity_model(self, rollout_buffer: EpisodicRolloutBuffer):
         self.curiosity_model.train()
+        forward_losses, inverse_dynamics_losses = [], []
         for i in range(self.n_epochs):
             # Since the curiosity model assumes that we will give 1 episode for each call,
             # we must ensure each 'rollout_data' contains only 1 episode by setting the
@@ -143,3 +145,7 @@ class CuriosityCallback(EnhancedBaseCallback):
                 loss: th.Tensor = forward_loss + inverse_dynamics_loss
                 loss.backward()
                 self.optimizer.step()
+                forward_losses.append(forward_loss.item())
+                inverse_dynamics_losses.append(inverse_dynamics_loss.item())
+        logger.record("curiosity/forward_loss", np.mean(forward_losses))
+        logger.record("curiosity/inverse_dynamics_loss", np.mean(inverse_dynamics_losses))

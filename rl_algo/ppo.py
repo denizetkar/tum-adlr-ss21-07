@@ -85,6 +85,7 @@ class RecurrentPPO(BaseAlgorithm):
         clip_range_vf: Union[None, float, Schedule] = None,
         max_absolute_reward: Optional[float] = None,
         max_eps_len: Optional[int] = None,
+        policy_coef: Union[float, Schedule] = 1.0,
         ent_coef: float = 0.0,
         vf_coef: float = 0.5,
         max_grad_norm: float = 0.5,
@@ -125,6 +126,7 @@ class RecurrentPPO(BaseAlgorithm):
         self.n_steps = n_steps
         self.gamma = min(max(gamma, 0.0), 1.0)
         self.gae_lambda = gae_lambda
+        self.policy_coef = get_schedule_fn(policy_coef)
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
         self.max_grad_norm = max_grad_norm
@@ -356,7 +358,11 @@ class RecurrentPPO(BaseAlgorithm):
 
                 entropy_losses.append(entropy_loss.item())
 
-                loss = policy_loss + self.ent_coef * entropy_loss + self.vf_coef * value_loss
+                loss = (
+                    self.policy_coef(self._current_progress_remaining) * policy_loss
+                    + self.ent_coef * entropy_loss
+                    + self.vf_coef * value_loss
+                )
 
                 # Optimization step
                 self.policy.optimizer.zero_grad()

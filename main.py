@@ -1,6 +1,7 @@
 import argparse
 import os
 import random
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,7 +38,13 @@ def train(args: argparse.Namespace):
                 args.max_absolute_reward = args.curiosity_coefficient
             elif args.max_absolute_reward is not None:
                 args.max_absolute_reward += args.curiosity_coefficient
-        policy_kwargs = {"net_arch": [args.rnn_hidden_dim, dict(pi=[args.rnn_hidden_dim], vf=[args.rnn_hidden_dim])]}
+        policy_kwargs = {
+            "net_arch": [
+                args.rnn_hidden_dim,
+                args.rnn_hidden_dim,
+                dict(pi=[args.rnn_hidden_dim, args.rnn_hidden_dim], vf=[args.rnn_hidden_dim, args.rnn_hidden_dim]),
+            ]
+        }
         model = RecurrentPPO(
             args.policy,
             env,
@@ -64,8 +71,8 @@ def train(args: argparse.Namespace):
             latent_dim=args.rnn_hidden_dim,
             partially_observable=args.partially_observable,
             pure_curiosity_reward=args.pure_curiosity_reward,
-            idm_net_arch=[args.rnn_hidden_dim],
-            forward_net_arch=[args.rnn_hidden_dim],
+            idm_net_arch=[args.rnn_hidden_dim, args.rnn_hidden_dim],
+            forward_net_arch=[args.rnn_hidden_dim, args.rnn_hidden_dim],
             model_path=args.curiosity_model_path,
             device=args.device,
             alternate_train=args.alternate_train,
@@ -81,6 +88,9 @@ def train(args: argparse.Namespace):
 
 
 def play(args: argparse.Namespace):
+    if args.pybullet_env:
+        import pybullet_envs
+
     if args.atari:
         env = VecFrameStack(venv=make_atari_env(args.env, n_envs=args.n_envs), n_stack=4)
     else:
@@ -88,18 +98,21 @@ def play(args: argparse.Namespace):
 
     model: RecurrentPPO = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
 
+    if args.pybullet_env:
+        env.render()
     obs = env.reset()
     dones = np.zeros((env.num_envs,), dtype=bool)
     model.reset_hiddens()
     frames = []
     while True:
+        time.sleep(0.005)
         action = model.predict(obs, dones)
         obs, _, dones, _ = env.step(action)
         if args.save_as_gif:
             frames.append(env.render(mode="rgb_array"))
             if len(frames) == args.gif_frame_size:
                 break
-        else:
+        elif not args.pybullet_env:
             env.render()
     env.close()
     if args.save_as_gif:
@@ -234,6 +247,11 @@ if __name__ == "__main__":
     play_parser.add_argument("--n-envs", type=int, default=4, help="Number of environments for data collection.")
     play_parser.add_argument(
         "--env", type=str, default="MountainCarContinuous-v0", help="String representation of the gym environment."
+    )
+    play_parser.add_argument(
+        "--pybullet-env",
+        action="store_true",
+        help="Flag for specifying if the environment is that of PyBullet and must be rendered accordingly.",
     )
     play_parser.add_argument("--atari", action="store_true", help="Flag for performing Atari preprocessing on observations.")
     play_parser.add_argument("--save-as-gif", action="store_true", help="Flag for saving the played episodes as a gif.")

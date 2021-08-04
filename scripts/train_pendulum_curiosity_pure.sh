@@ -9,11 +9,14 @@ python3 main.py \
   --ppo-model-path "./checkpoints/pendulum_curiosity_pure/ppo" \
   --device cuda \
   --tensorboard-log "./tensorboard/pendulum_curiosity_pure" \
-  --curiosity-epochs 8 \
-  --total-timesteps 3000000 \
-  --n-steps 2000 \
-  --n-envs 8 \
+  --ppo-epochs 6 \
+  --curiosity-epochs 4 \
+  --total-timesteps 5000000 \
+  --curiosity-reg-coef 0.001 \
+  --n-steps 128 \
+  --n-envs 64 \
   --policy MlpPolicy \
   --env "InvertedDoublePendulumBulletEnv-v0" \
+  --pybullet-env \
   --use-curiosity \
   --pure-curiosity-reward

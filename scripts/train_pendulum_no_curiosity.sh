@@ -8,9 +8,10 @@ python3 main.py \
   --ppo-model-path "./checkpoints/pendulum_no_curiosity/ppo" \
   --device cuda \
   --tensorboard-log "./tensorboard/pendulum_no_curiosity" \
-  --total-timesteps 3000000 \
-  --n-steps 2000 \
-  --n-envs 8 \
-  --rnn-hidden-dim 32 \
+  --ppo-epochs 6 \
+  --total-timesteps 5000000 \
+  --n-steps 128 \
+  --n-envs 64 \
   --policy MlpPolicy \
-  --env "InvertedDoublePendulumBulletEnv-v0"
+  --env "InvertedDoublePendulumBulletEnv-v0" \
+  --pybullet-env
