@@ -17,29 +17,31 @@
     usage: main.py [-h] {train,play} ...
 
     optional arguments:
-    -h, --help    show this help message and exit
+      -h, --help    show this help message and exit
 
     Subcommand:
-    {train,play}
+      {train,play}
         train       Subcommand for training the PPO and curiosity models.
-        play        Subcommand for getting the PPO model to play in the
+        play        Subcommand for getting the PPO model to play in the  
                     environment for which it was trained.
 
 #### `train` subcommand usage
     usage: main.py train [-h] [--curiosity-model-path CURIOSITY_MODEL_PATH]
                          --ppo-model-path PPO_MODEL_PATH --tensorboard-log
-                         TENSORBOARD_LOG [--device DEVICE]
+                         TENSORBOARD_LOG [--device DEVICE] [--alternate-train]
                          [--learning-rate LEARNING_RATE]
                          [--min-batch-size MIN_BATCH_SIZE]
                          [--ppo-epochs PPO_EPOCHS]
                          [--curiosity-epochs CURIOSITY_EPOCHS]
+                         [--curiosity-coefficient CURIOSITY_COEFFICIENT]
                          [--curiosity-reg-coef CURIOSITY_REG_COEF]
                          [--total-timesteps TOTAL_TIMESTEPS] [--n-steps N_STEPS]
                          [--n-envs N_ENVS] [--rnn-hidden-dim RNN_HIDDEN_DIM]
                          [--policy {MlpPolicy,CnnPolicy,RnnPolicy,CnnRnnPolicy}]
-                         [--env ENV] [--atari] [--rng-seed RNG_SEED]
-                         [--partially-observable] [--use-curiosity]
-                         [--pure-curiosity-reward]
+                         [--env ENV] [--max-absolute-reward MAX_ABSOLUTE_REWARD]
+                         [--max-eps-len MAX_EPS_LEN] [--atari]
+                         [--rng-seed RNG_SEED] [--partially-observable]
+                         [--use-curiosity] [--pure-curiosity-reward]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -55,6 +57,8 @@
       --device DEVICE       String representation of the device to be used by
                             PyTorch.See https://pytorch.org/docs/stable/tensor_att
                             ributes.html#torch.torch.device for more details.
+      --alternate-train     Flag for making alternating training between curiosity
+                            models and PPO. Only relevant when curiosity is used!
       --learning-rate LEARNING_RATE
                             Learning rate to be used for all types of training.
       --min-batch-size MIN_BATCH_SIZE
@@ -65,6 +69,9 @@
       --curiosity-epochs CURIOSITY_EPOCHS
                             Number of epochs to train the curiosity models per
                             'collect_rollout'.
+      --curiosity-coefficient CURIOSITY_COEFFICIENT
+                            The coefficient to multiply the curiosity reward
+                            before adding to the total rewards.
       --curiosity-reg-coef CURIOSITY_REG_COEF
                             Regularization coefficient for training curiosity
                             models.
@@ -78,6 +85,12 @@
       --policy {MlpPolicy,CnnPolicy,RnnPolicy,CnnRnnPolicy}
                             Type of the policy network.
       --env ENV             String representation of the gym environment.
+      --max-absolute-reward MAX_ABSOLUTE_REWARD
+                            Maximum value of the absolute reward from the
+                            environment.
+      --max-eps-len MAX_EPS_LEN
+                            Maximum possible length of an episode in the
+                            environment.
       --atari               Flag for performing Atari preprocessing on
                             observations.
       --rng-seed RNG_SEED   The seed to be used for all random number generators
@@ -92,18 +105,18 @@
                             curiosity).
 
 #### `play` subcommand usage
-    usage: main.py play [-h] --ppo-model-path PPO_MODEL_PATH [--device DEVICE]    
-                        [--n-envs N_ENVS] [--env ENV] [--atari] [--save-as-gif]   
-                        [--gif-frame-size GIF_FRAME_SIZE] [--gif-path GIF_PATH]   
+    usage: main.py play [-h] --ppo-model-path PPO_MODEL_PATH [--device DEVICE]
+                        [--n-envs N_ENVS] [--env ENV] [--atari] [--save-as-gif]
+                        [--gif-frame-size GIF_FRAME_SIZE] [--gif-path GIF_PATH]
 
     optional arguments:
       -h, --help            show this help message and exit
       --ppo-model-path PPO_MODEL_PATH
                             Path to the `RecurrentPPO` model file to be
                             loaded/saved. Note that it is a '.zip' file.
-      --device DEVICE       String representation of the device to be used by     
+      --device DEVICE       String representation of the device to be used by
                             PyTorch.See https://pytorch.org/docs/stable/tensor_att
-                            ributes.html#torch.torch.device for more details.     
+                            ributes.html#torch.torch.device for more details.
       --n-envs N_ENVS       Number of environments for data collection.
       --env ENV             String representation of the gym environment.
       --atari               Flag for performing Atari preprocessing on
