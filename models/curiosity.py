@@ -5,6 +5,7 @@ import torch as th
 import torch.nn as nn
 from gym import spaces
 from stable_baselines3.common.distributions import (
+    BernoulliDistribution,
     CategoricalDistribution,
     DiagGaussianDistribution,
     MultiCategoricalDistribution,
@@ -15,7 +16,7 @@ from stable_baselines3.common.torch_layers import FlattenExtractor
 
 from .extractor import EnhancedNatureCNN, RnnExtractor
 from .mlp import MLP
-from .modules import Reshape, SequentialExpand, TupleApply, TuplePick
+from .modules import Linear, Reshape, SequentialExpand, TupleApply, TuplePick
 
 # See the blog below for a good explanation:
 # https://medium.com/analytics-vidhya/advanced-exploration-curiosity-driven-exploration-52bcac6d3450
@@ -38,7 +39,7 @@ class InverseDynamicsModel(nn.Module):
             self.first_extractor = EnhancedNatureCNN(observation_space, features_dim=latent_dim).to(device)
         else:
             flattener = FlattenExtractor(observation_space)
-            self.first_extractor = nn.Sequential(flattener, nn.Linear(flattener.features_dim, latent_dim)).to(device)
+            self.first_extractor = nn.Sequential(flattener, Linear(flattener.features_dim, latent_dim), nn.PReLU()).to(device)
         # Get second extractor.
         if net_arch is None:
             net_arch = []
@@ -53,22 +54,20 @@ class InverseDynamicsModel(nn.Module):
                 TuplePick(0),
             ).to(device)
         else:
-            self.second_extractor = SequentialExpand(
-                TuplePick(0), MLP(latent_dim, net_arch=net_arch, activation_fn=nn.PReLU)
-            ).to(device)
+            self.second_extractor = SequentialExpand(TuplePick(0), MLP(latent_dim, net_arch=net_arch)).to(device)
         # Get action network.
         action_dist = make_proba_distribution(action_space)
         if isinstance(action_dist, DiagGaussianDistribution):
-            self.action_net, _ = action_dist.proba_distribution_net(
-                latent_dim=latent_dim * 2,
-            )
-            self.action_net = self.action_net.to(device)
+            action_net_out_dim = action_dist.action_dim
         elif isinstance(action_dist, CategoricalDistribution):
-            self.action_net = action_dist.proba_distribution_net(latent_dim=latent_dim * 2).to(device)
+            action_net_out_dim = action_dist.action_dim
         elif isinstance(action_dist, MultiCategoricalDistribution):
-            self.action_net = action_dist.proba_distribution_net(latent_dim=latent_dim * 2).to(device)
+            action_net_out_dim = sum(action_dist.action_dims)
+        elif isinstance(action_dist, BernoulliDistribution):
+            action_net_out_dim = action_dist.action_dims
         else:
             raise NotImplementedError(f"Unsupported distribution '{action_dist}'.")
+        self.action_block = nn.Sequential(nn.PReLU(), MLP(latent_dim * 2, [action_net_out_dim])).to(device)
 
     def forward(self, obs: th.Tensor, dones: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
         # 'obs' is of shape (seq_len,) + self.obs_shape
@@ -79,7 +78,7 @@ class InverseDynamicsModel(nn.Module):
         latent_features = self.second_extractor(first_features, dones)
         # Assume that there is only 1 episode in the 'obs' !!!!!!!!!!!!!!!!!!!!!
         current_and_next_latents = th.cat([latent_features[:-1], latent_features[1:]], dim=-1)
-        first_n_minus_1_actions = self.action_net(current_and_next_latents)
+        first_n_minus_1_actions = self.action_block(current_and_next_latents)
         return first_n_minus_1_actions, latent_features
 
     def reset_hiddens(self, batch_size: int = 1):

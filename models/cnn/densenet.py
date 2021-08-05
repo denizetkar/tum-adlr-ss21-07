@@ -16,11 +16,12 @@ class BasicBlock(nn.Module):
         self.layers = nn.Sequential(*layers)
 
     def forward(self, x: th.Tensor) -> th.Tensor:
-        # Adjust batch normalization modules in case the batch size is 1.
-        if x.shape[1] == 1:
-            self.layers[0].eval()
-        else:
-            self.layers[0].train()
+        if self.training:
+            # Adjust batch normalization modules in case the batch size is 1.
+            if x.shape[1] == 1:
+                self.layers[0].eval()
+            else:
+                self.layers[0].train()
         out = self.layers(x)
         return th.cat([x, out], 1)
 

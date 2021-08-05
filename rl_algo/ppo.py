@@ -184,7 +184,7 @@ class RecurrentPPO(BaseAlgorithm):
         )
         self.policy = self.policy.to(self.device)
         # # OnPolicyAlgorithm._setup_model() END
-        self.advantage_normalizer = nn.BatchNorm1d(1, eps=1e-8).to(self.device)
+        self.advantage_normalizer = nn.BatchNorm1d(1, eps=1e-8, affine=False).to(self.device)
         # Initialize schedules for policy/value clipping
         self.clip_range = get_schedule_fn(self.clip_range)
         if self.clip_range_vf is not None:
@@ -298,6 +298,10 @@ class RecurrentPPO(BaseAlgorithm):
             approx_kl_divs = []
             # Do a complete pass on the rollout buffer
             for rollout_data in self.rollout_buffer.get(self.min_batch_size):
+                # Too little batch size can destroy the model parameters.
+                if rollout_data.rewards.numel() <= self.min_batch_size // 4:
+                    continue
+
                 actions = rollout_data.actions
                 if isinstance(self.action_space, spaces.Discrete):
                     # Convert discrete action from float to long
@@ -321,7 +325,7 @@ class RecurrentPPO(BaseAlgorithm):
                     self.advantage_normalizer.train()
                 else:
                     self.advantage_normalizer.eval()
-                advantages = self.advantage_normalizer(advantages.unsqueeze(-1)).squeeze(-1)
+                advantages: th.Tensor = self.advantage_normalizer(advantages.unsqueeze(-1)).squeeze(-1)
 
                 # ratio between old and new policy, should be one at the first iteration
                 ratio = th.exp(log_prob - rollout_data.old_log_prob)
@@ -364,13 +368,21 @@ class RecurrentPPO(BaseAlgorithm):
                     + self.vf_coef * value_loss
                 )
 
+                # Calculate approximate form of reverse KL Divergence for early stopping
+                # see issue #417: https://github.com/DLR-RM/stable-baselines3/issues/417
+                # and discussion in PR #419: https://github.com/DLR-RM/stable-baselines3/pull/419
+                # and Schulman blog: http://joschu.net/blog/kl-approx.html
+                with th.no_grad():
+                    log_ratio = log_prob - rollout_data.old_log_prob
+                    approx_kl_div = th.mean((th.exp(log_ratio) - 1) - log_ratio).cpu().numpy()
+                    approx_kl_divs.append(approx_kl_div)
+
                 # Optimization step
                 self.policy.optimizer.zero_grad()
                 loss.backward()
                 # Clip grad norm
                 th.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
                 self.policy.optimizer.step()
-                approx_kl_divs.append(th.mean(rollout_data.old_log_prob - log_prob).detach().cpu().numpy())
 
             all_kl_divs.append(np.mean(approx_kl_divs))
 
@@ -487,6 +499,11 @@ class RecurrentPPO(BaseAlgorithm):
     def _excluded_save_params(self) -> List[str]:
         excludes = super()._excluded_save_params()
         excludes.append("model_lock")
+        for var_name in ("env", "_vec_normalize_env"):
+            try:
+                excludes.remove(var_name)
+            except ValueError:
+                pass
         return excludes
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:

@@ -3,11 +3,14 @@ import os
 import random
 import time
 
+import gym.spaces
 import matplotlib.pyplot as plt
 import numpy as np
+import pybullet_envs
 import torch as th
 from matplotlib import animation
 from stable_baselines3.common.env_util import make_atari_env, make_vec_env
+from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
 
 from callbacks import curiosity
@@ -29,7 +32,9 @@ def train(args: argparse.Namespace):
         env = make_vec_env(args.env, n_envs=args.n_envs, seed=args.rng_seed)
 
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
-        model = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
+        model = RecurrentPPO.load(args.ppo_model_path, device=args.device)
+        if isinstance(env.observation_space, (gym.spaces.Box, gym.spaces.Dict)):
+            model.env.set_venv(env)
     else:
         if args.max_absolute_reward is None and args.atari:
             args.max_absolute_reward = 1.0
@@ -40,14 +45,16 @@ def train(args: argparse.Namespace):
                 args.max_absolute_reward += args.curiosity_coefficient
         policy_kwargs = {
             "net_arch": [
-                args.rnn_hidden_dim,
-                args.rnn_hidden_dim,
-                dict(pi=[args.rnn_hidden_dim, args.rnn_hidden_dim], vf=[args.rnn_hidden_dim, args.rnn_hidden_dim]),
+                # args.rnn_hidden_dim,
+                dict(
+                    pi=[args.rnn_hidden_dim, args.rnn_hidden_dim, args.rnn_hidden_dim],
+                    vf=[args.rnn_hidden_dim, args.rnn_hidden_dim, args.rnn_hidden_dim],
+                ),
             ]
         }
         model = RecurrentPPO(
             args.policy,
-            env,
+            VecNormalize(env) if isinstance(env.observation_space, (gym.spaces.Box, gym.spaces.Dict)) else env,
             learning_rate=args.learning_rate,
             n_steps=args.n_steps,
             min_batch_size=args.min_batch_size,
@@ -88,15 +95,15 @@ def train(args: argparse.Namespace):
 
 
 def play(args: argparse.Namespace):
-    if args.pybullet_env:
-        import pybullet_envs
-
     if args.atari:
         env = VecFrameStack(venv=make_atari_env(args.env, n_envs=args.n_envs), n_stack=4)
     else:
         env = make_vec_env(args.env, n_envs=args.n_envs)
 
-    model: RecurrentPPO = RecurrentPPO.load(args.ppo_model_path, env=env, device=args.device)
+    model: RecurrentPPO = RecurrentPPO.load(args.ppo_model_path, device=args.device)
+    if isinstance(env.observation_space, (gym.spaces.Box, gym.spaces.Dict)):
+        model.env.set_venv(env)
+        model.env.training = False
 
     if args.pybullet_env:
         env.render()
@@ -217,7 +224,8 @@ if __name__ == "__main__":
     train_parser.add_argument(
         "--partially-observable",
         action="store_true",
-        help="Flag for informing the model to use RNNs due to partial observability of the RL problem.",
+        help="Flag for informing the inverse dynamics curiosity model to use RNNs "
+        "due to partial observability of the RL problem.",
     )
     train_parser.add_argument("--use-curiosity", action="store_true", help="Flag for using curiosity in the training.")
     train_parser.add_argument(

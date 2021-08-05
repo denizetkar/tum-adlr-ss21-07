@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import gym
 import numpy as np
 import torch as th
-from models import EnhancedNatureCNN, MlpExtractor, RnnExtractor
+from models import EnhancedNatureCNN, Linear, MlpExtractor, RnnExtractor
 from stable_baselines3.common.distributions import (
     BernoulliDistribution,
     CategoricalDistribution,
@@ -217,7 +217,7 @@ class ActorCriticPolicy(BasePolicy):
         else:
             raise NotImplementedError(f"Unsupported distribution '{self.action_dist}'.")
 
-        self.value_net = nn.Linear(self.secondary_extractor.latent_dim_vf, 1)
+        self.value_net = Linear(self.secondary_extractor.latent_dim_vf, 1)
         # Init weights: use orthogonal initialization
         # with small initial weight for the output
         if self.ortho_init:

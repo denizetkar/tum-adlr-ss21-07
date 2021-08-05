@@ -11,6 +11,7 @@ from torchvision import models
 
 from .cnn import BasicBlock, DenseBlock
 from .mlp import MLP
+from .modules import Linear
 from .rnn.lstms import LayerNormSemeniutaLSTM, MultiLayerLSTM
 
 
@@ -228,13 +229,13 @@ class CnnExtractor(BaseFeaturesExtractor):
         latent_h, latent_w = latent_dims[2:]
         self.avg_pool = nn.AdaptiveAvgPool2d((latent_h, latent_w))
         self.classifier = nn.Sequential(
-            nn.Linear(512 * latent_h * latent_w, 4096),
+            Linear(512 * latent_h * latent_w, 4096),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(4096, 4096),
+            Linear(4096, 4096),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(4096, self.features_dim),
+            Linear(4096, self.features_dim),
         )
         # TODO: Initialize weights to use this extractor
 
@@ -309,7 +310,7 @@ class EnhancedNatureCNN(BaseFeaturesExtractor):
         with th.no_grad():
             n_flatten = self.cnn(th.as_tensor(observation_space.sample()[None]).float()).shape[1]
 
-        self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.PReLU())
+        self.linear = nn.Sequential(Linear(n_flatten, features_dim), nn.PReLU())
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
         return self.linear(self.cnn(observations))

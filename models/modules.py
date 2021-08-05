@@ -4,6 +4,7 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 from gym import spaces
+from torch.nn import init
 
 
 class TuplePick(nn.Module):
@@ -74,3 +75,13 @@ class MultiCrossEntropyLoss(nn.Module):
 
     def extra_repr(self) -> str:
         return "(nvec): {}".format(self.nvec)
+
+
+class Linear(nn.Linear):
+    def __init__(self, in_features: int, out_features: int, bias: bool = True) -> None:
+        super().__init__(in_features, out_features, bias=bias)
+
+    def reset_parameters(self) -> None:
+        init.orthogonal_(self.weight)
+        if self.bias is not None:
+            init.zeros_(self.bias)
