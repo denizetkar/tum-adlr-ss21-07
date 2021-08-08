@@ -1,8 +1,12 @@
+import io
+import pathlib
+import pickle
 import threading
 import time
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import gym
+import gym.spaces
 import numpy as np
 import torch as th
 import torch.nn as nn
@@ -12,9 +16,11 @@ from gym import spaces
 from policies import ActorCriticPolicy
 from stable_baselines3.common import logger
 from stable_baselines3.common.base_class import BaseAlgorithm
+from stable_baselines3.common.save_util import load_from_zip_file, recursive_getattr, recursive_setattr, save_to_zip_file
 from stable_baselines3.common.type_aliases import GymEnv, Schedule
-from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean
+from stable_baselines3.common.utils import check_for_correct_spaces, explained_variance, get_schedule_fn, safe_mean
 from stable_baselines3.common.vec_env import VecEnv
+from stable_baselines3.common.vec_env.vec_normalize import VecNormalize
 from torch.nn import functional as F
 from utils import smart_clamp
 
@@ -122,6 +128,12 @@ class RecurrentPPO(BaseAlgorithm):
                 spaces.MultiBinary,
             ),
         )
+        if (
+            self.env is not None
+            and isinstance(self.env.observation_space, (gym.spaces.Box, gym.spaces.Dict))
+            and self.get_vec_normalize_env() is None
+        ):
+            self.env = self._vec_normalize_env = VecNormalize(self.env, gamma=gamma)
 
         self.n_steps = n_steps
         self.gamma = min(max(gamma, 0.0), 1.0)
@@ -146,6 +158,8 @@ class RecurrentPPO(BaseAlgorithm):
         self.min_batch_size = min_batch_size
         self.n_epochs = n_epochs
         self.clip_range = clip_range
+        if self.get_vec_normalize_env() is not None:
+            max_absolute_reward = None
         if clip_range_vf is None and max_absolute_reward is not None and (self.gamma < 1.0 or max_eps_len is not None):
             max_absolute_reward = max(max_absolute_reward, 0.0)
             max_eps_len = float("inf") if max_eps_len is None else max_eps_len
@@ -429,6 +443,9 @@ class RecurrentPPO(BaseAlgorithm):
         :return: the model's action
             (used in recurrent policies)
         """
+        vec_norm_env = self.get_vec_normalize_env()
+        if vec_norm_env is not None:
+            vec_norm_env.training = False
         return self.policy.predict(observation, done, mask, deterministic)
 
     def learn(
@@ -443,6 +460,9 @@ class RecurrentPPO(BaseAlgorithm):
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
     ) -> "RecurrentPPO":
+        vec_norm_env = self.get_vec_normalize_env()
+        if vec_norm_env is not None:
+            vec_norm_env.training = True
         iteration = 0
 
         if callback is None:
@@ -499,11 +519,6 @@ class RecurrentPPO(BaseAlgorithm):
     def _excluded_save_params(self) -> List[str]:
         excludes = super()._excluded_save_params()
         excludes.append("model_lock")
-        for var_name in ("env", "_vec_normalize_env"):
-            try:
-                excludes.remove(var_name)
-            except ValueError:
-                pass
         return excludes
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
@@ -512,3 +527,140 @@ class RecurrentPPO(BaseAlgorithm):
 
     def reset_hiddens(self, batch_size: int = 1):
         self.policy.reset_hiddens(batch_size)
+
+    @classmethod
+    def load(
+        cls,
+        path: Union[str, pathlib.Path, io.BufferedIOBase],
+        env: Optional[GymEnv] = None,
+        device: Union[th.device, str] = "auto",
+        custom_objects: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> "RecurrentPPO":
+        """
+        Load the model from a zip-file
+
+        :param path: path to the file (or a file-like) where to
+            load the agent from
+        :param env: the new environment to run the loaded model on
+            (can be None if you only need prediction from a trained model) has priority over any saved environment
+        :param device: Device on which the code should run.
+        :param custom_objects: Dictionary of objects to replace
+            upon loading. If a variable is present in this dictionary as a
+            key, it will not be deserialized and the corresponding item
+            will be used instead. Similar to custom_objects in
+            ``keras.models.load_model``. Useful when you have an object in
+            file that can not be deserialized.
+        :param kwargs: extra arguments to change the model when loading
+        """
+        data, params, pytorch_variables = load_from_zip_file(path, device=device, custom_objects=custom_objects)
+
+        # Remove stored device information and replace with ours
+        if "policy_kwargs" in data:
+            if "device" in data["policy_kwargs"]:
+                del data["policy_kwargs"]["device"]
+
+        if "policy_kwargs" in kwargs and kwargs["policy_kwargs"] != data["policy_kwargs"]:
+            raise ValueError(
+                f"The specified policy kwargs do not equal the stored policy kwargs."
+                f"Stored kwargs: {data['policy_kwargs']}, specified kwargs: {kwargs['policy_kwargs']}"
+            )
+
+        if "observation_space" not in data or "action_space" not in data:
+            raise KeyError("The observation_space and action_space were not given, can't verify new environments")
+
+        if env is not None:
+            # Wrap first if needed
+            env = cls._wrap_env(env, data["verbose"])
+            # Check if given env is valid
+            check_for_correct_spaces(env, data["observation_space"], data["action_space"])
+        else:
+            # Use stored env, if one exists. If not, continue as is (can be used for predict)
+            if "env" in data:
+                env = data["env"]
+        if "_vec_normalize_env" in data and isinstance(data["_vec_normalize_env"], (str, bytes)):
+            vec_normalize_env: VecNormalize = pickle.loads(data["_vec_normalize_env"])
+            vec_normalize_env.set_venv(env)
+            env = vec_normalize_env
+            del data["_vec_normalize_env"]
+
+        # noinspection PyArgumentList
+        model = cls(  # pytype: disable=not-instantiable,wrong-keyword-args
+            policy=data["policy_class"],
+            env=env,
+            device=device,
+            _init_setup_model=False,  # pytype: disable=not-instantiable,wrong-keyword-args
+        )
+
+        # load parameters
+        model.__dict__.update(data)
+        model.__dict__.update(kwargs)
+        model._setup_model()
+
+        # put state_dicts back in place
+        model.set_parameters(params, exact_match=True, device=device)
+
+        # put other pytorch variables back in place
+        if pytorch_variables is not None:
+            for name in pytorch_variables:
+                recursive_setattr(model, name, pytorch_variables[name])
+
+        # Sample gSDE exploration matrix, so it uses the right device
+        # see issue #44
+        if model.use_sde:
+            model.policy.reset_noise()  # pytype: disable=attribute-error
+        return model
+
+    def save(
+        self,
+        path: Union[str, pathlib.Path, io.BufferedIOBase],
+        exclude: Optional[Iterable[str]] = None,
+        include: Optional[Iterable[str]] = None,
+    ) -> None:
+        """
+        Save all the attributes of the object and the model parameters in a zip-file.
+
+        :param path: path to the file where the rl agent should be saved
+        :param exclude: name of parameters that should be excluded in addition to the default ones
+        :param include: name of parameters that might be excluded but should be included anyway
+        """
+        # Copy parameter list so we don't mutate the original dict
+        data = self.__dict__.copy()
+
+        # Exclude is union of specified parameters (if any) and standard exclusions
+        if exclude is None:
+            exclude = []
+        exclude = set(exclude).union(self._excluded_save_params())
+
+        # Do not exclude params if they are specifically included
+        if include is not None:
+            exclude = exclude.difference(include)
+
+        state_dicts_names, torch_variable_names = self._get_torch_save_params()
+        all_pytorch_variables = state_dicts_names + torch_variable_names
+        for torch_var in all_pytorch_variables:
+            # We need to get only the name of the top most module as we'll remove that
+            var_name = torch_var.split(".")[0]
+            # Any params that are in the save vars must not be saved by data
+            exclude.add(var_name)
+
+        # Remove parameter entries of parameters which are to be excluded
+        for param_name in exclude:
+            data.pop(param_name, None)
+
+        vec_normalize_env = self.get_vec_normalize_env()
+        if vec_normalize_env is not None and "_vec_normalize_env" not in data:
+            data["_vec_normalize_env"] = pickle.dumps(vec_normalize_env, 4)
+
+        # Build dict of torch variables
+        pytorch_variables = None
+        if torch_variable_names is not None:
+            pytorch_variables = {}
+            for name in torch_variable_names:
+                attr = recursive_getattr(self, name)
+                pytorch_variables[name] = attr
+
+        # Build dict of state_dicts
+        params_to_save = self.get_parameters()
+
+        save_to_zip_file(path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)

@@ -10,7 +10,6 @@ import pybullet_envs
 import torch as th
 from matplotlib import animation
 from stable_baselines3.common.env_util import make_atari_env, make_vec_env
-from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3.common.vec_env.vec_frame_stack import VecFrameStack
 
 from callbacks import curiosity
@@ -32,10 +31,10 @@ def train(args: argparse.Namespace):
         env = make_vec_env(args.env, n_envs=args.n_envs, seed=args.rng_seed)
 
     if args.ppo_model_path is not None and os.path.isfile(args.ppo_model_path):
-        model = RecurrentPPO.load(args.ppo_model_path, device=args.device)
-        if isinstance(env.observation_space, (gym.spaces.Box, gym.spaces.Dict)):
-            model.env.set_venv(env)
+        model = RecurrentPPO.load(args.ppo_model_path, env, device=args.device)
     else:
+        if isinstance(env.observation_space, (gym.spaces.Box, gym.spaces.Dict)):
+            args.max_absolute_reward = None
         if args.max_absolute_reward is None and args.atari:
             args.max_absolute_reward = 1.0
         if args.use_curiosity:
@@ -54,7 +53,7 @@ def train(args: argparse.Namespace):
         }
         model = RecurrentPPO(
             args.policy,
-            VecNormalize(env) if isinstance(env.observation_space, (gym.spaces.Box, gym.spaces.Dict)) else env,
+            env,
             learning_rate=args.learning_rate,
             n_steps=args.n_steps,
             min_batch_size=args.min_batch_size,
@@ -100,10 +99,8 @@ def play(args: argparse.Namespace):
     else:
         env = make_vec_env(args.env, n_envs=args.n_envs)
 
-    model: RecurrentPPO = RecurrentPPO.load(args.ppo_model_path, device=args.device)
-    if isinstance(env.observation_space, (gym.spaces.Box, gym.spaces.Dict)):
-        model.env.set_venv(env)
-        model.env.training = False
+    model: RecurrentPPO = RecurrentPPO.load(args.ppo_model_path, env, device=args.device)
+    env = model.env
 
     if args.pybullet_env:
         env.render()

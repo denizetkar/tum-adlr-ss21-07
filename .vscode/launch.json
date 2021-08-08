@@ -14,7 +14,7 @@
             "args": [
                 "play",
                 "--ppo-model-path",
-                "./checkpoints/ppo0.zip",
+                "./checkpoints/mountaincar_curiosity_pure/ppo0.zip",
                 "--device",
                 "cuda",
                 "--n-envs",
